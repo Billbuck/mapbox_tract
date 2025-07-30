@@ -11,7 +11,8 @@ const CONFIG = {
             nameField: 'foyers',
             color: '#FF6B6B',
             opacity: 0.3,
-            isUSL: true
+            isUSL: true,
+            superiorType: null // Pas de zone supérieure pour USL
         },
         iris: {
             id: 'iris',
@@ -21,7 +22,8 @@ const CONFIG = {
             nameField: 'nom_iris',
             color: '#4ECDC4',
             opacity: 0.3,
-            isUSL: false
+            isUSL: false,
+            superiorType: 'commune' // Les communes sont supérieures aux IRIS
         },
         commune: {
             id: 'commune',
@@ -31,7 +33,8 @@ const CONFIG = {
             nameField: 'nom_commune',
             color: '#45B7D1',
             opacity: 0.3,
-            isUSL: false
+            isUSL: false,
+            superiorType: 'departement' // Les départements sont supérieurs aux communes
         },
         code_postal: {
             id: 'code_postal',
@@ -41,7 +44,8 @@ const CONFIG = {
             nameField: 'nom_commune',
             color: '#9C27B0',
             opacity: 0.3,
-            isUSL: false
+            isUSL: false,
+            superiorType: 'departement' // Les départements sont supérieurs aux codes postaux
         },
         departement: {
             id: 'departement',
@@ -51,7 +55,8 @@ const CONFIG = {
             nameField: 'nom_dept',
             color: '#FFA726',
             opacity: 0.25,
-            isUSL: false
+            isUSL: false,
+            superiorType: null // Pas de zone supérieure pour les départements
         }
     },
     
@@ -92,10 +97,10 @@ const CONFIG = {
     },
     
     COLORS: {
-        SELECTED_ZONE: '#ff6b6b',
-        SELECTED_TEMP: '#FFA726',
-        DEFAULT_ZONE: '#4A90E2',
-        SUPERIOR_ZONE: '#555555',
+        SELECTED_ZONE: '#C366F2',          // Violet pour les zones sélectionnées (remplace orange #FF7F00)
+        DEFAULT_ZONE_OUTLINE: '#E299FF',   // Violet clair pour le contour des zones non sélectionnées (remplace #FF9500)
+        SUPERIOR_ZONE_OUTLINE: '#555555',  // Gris pour les contours supérieurs (identique)
+        HOVER_ZONE: '#5f27cd',
         CIRCLE_TOOL: '#ffc107',
         ISOCHRONE_TOOL: '#28a745',
         POLYGON_TOOL: '#D20C0C'

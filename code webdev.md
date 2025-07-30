@@ -195,6 +195,17 @@ function CommunicationCarteWebDev(aliasLibZones, aliasLibNbFoyers, aliasLibAdres
 
 ## MODIFICATIONS POUR ws_france_zones_rectangle
 
+### Note importante sur les zones supérieures
+
+La procédure doit retourner les zones de niveau supérieur selon la hiérarchie suivante :
+- Pour type_zone = 'iris' → retourner les communes dans zones_superieur
+- Pour type_zone = 'commune' → retourner les départements dans zones_superieur  
+- Pour type_zone = 'code_postal' → retourner les départements dans zones_superieur
+- Pour type_zone = 'departement' → pas de zones_superieur
+- Pour type_zone = 'mediaposte' → pas de zones_superieur
+
+**IMPORTANT : Cette logique doit être implémentée dans la section qui charge zones_superieur**
+
 ### A. Ajouter dans la structure registre_sessions :
 ```sql
 ALTER TABLE `registre_sessions` 
