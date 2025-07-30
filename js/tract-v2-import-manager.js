@@ -8,13 +8,30 @@
 function openImportPopup() {
     const popup = document.getElementById('popup-import');
     if (popup) {
-        popup.classList.add('active');
-        
-        // Position par défaut si pas définie
-        if (!popup.style.left) {
+        // Position par défaut comme dans Zecible
+        if (!popup.style.left || popup.style.left === 'auto') {
             popup.style.left = '180px';
             popup.style.top = '100px';
+            popup.style.transform = 'none';
+            popup.style.right = 'auto';
         }
+        
+        popup.classList.add('active');
+        
+        // Vérifier après l'affichage si la popup est visible et ajuster si nécessaire
+        setTimeout(() => {
+            const rect = popup.getBoundingClientRect();
+            
+            // Si la popup sort à droite
+            if (rect.right > window.innerWidth - 20) {
+                popup.style.left = (window.innerWidth - rect.width - 20) + 'px';
+            }
+            
+            // Si la popup sort en bas
+            if (rect.bottom > window.innerHeight - 20) {
+                popup.style.top = (window.innerHeight - rect.height - 20) + 'px';
+            }
+        }, 10);
         
         // Réinitialiser les champs
         const textarea = document.getElementById('import-codes-text');

@@ -116,6 +116,18 @@ function setupMapEvents() {
         console.log('[STYLE] Layers présents:', layers.length, 'layers');
     });
     
+    // Mettre à jour l'indicateur de zoom
+    function updateZoomIndicator() {
+        const zoomLevel = document.getElementById('zoom-level');
+        if (zoomLevel && APP.map) {
+            zoomLevel.textContent = APP.map.getZoom().toFixed(2);
+        }
+    }
+    
+    APP.map.on('zoom', updateZoomIndicator);
+    APP.map.on('zoomend', updateZoomIndicator);
+    updateZoomIndicator();
+    
     let moveTimeout;
     APP.map.on('moveend', () => {
         clearTimeout(moveTimeout);
@@ -996,5 +1008,38 @@ window.createStoreMarker = createStoreMarker;
 window.hasValidAddress = hasValidAddress;
 window.fitMapToGeometry = fitMapToGeometry;
 window.hideNonUSLLayers = hideNonUSLLayers;
+
+/**
+ * Active ou désactive l'affichage des libellés sur la carte
+ * @param {boolean} show - true pour afficher, false pour masquer
+ */
+function toggleLabelsVisibility(show) {
+    console.log('[MAP] Toggle labels:', show);
+    
+    if (!APP.map) {
+        console.warn('[MAP] Carte non initialisée');
+        return;
+    }
+    
+    // Layers de libellés à modifier
+    const labelLayers = [
+        'zones-usl-label',
+        'zones-france-label',
+        'zones-france-superior-label'
+    ];
+    
+    labelLayers.forEach(layerId => {
+        if (APP.map.getLayer(layerId)) {
+            APP.map.setLayoutProperty(
+                layerId,
+                'visibility',
+                show ? 'visible' : 'none'
+            );
+        }
+    });
+}
+
+// Exporter la fonction
+window.toggleLabelsVisibility = toggleLabelsVisibility;
 
 console.log('✅ Module MAP-MANAGER Tract V2 chargé');

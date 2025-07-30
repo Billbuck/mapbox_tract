@@ -343,6 +343,16 @@ async function loadStudy(studyData) {
         const message = `Étude chargée : ${restoredCount}/${studyData.selection.uslIds.length} USL restaurées (${GLOBAL_STATE.totalSelectedFoyers} foyers)`;
         showStatus(message, restoredCount === studyData.selection.uslIds.length ? 'success' : 'warning');
         
+        // 12. Restaurer la préférence des libellés
+        const showLabels = localStorage.getItem('tract-v2-show-labels') === 'true';
+        const labelsSwitch = document.getElementById('labels-switch');
+        if (labelsSwitch) {
+            labelsSwitch.checked = showLabels;
+            if (window.toggleLabelsVisibility) {
+                window.toggleLabelsVisibility(showLabels);
+            }
+        }
+        
         return true;
         
     } catch (error) {

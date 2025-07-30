@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Variables CSS - Tract V2</title>
+    <link rel="stylesheet" href="css/tract-v2-variables.css">
+    <link rel="stylesheet" href="css/tract-v2-icons.css">
+    <style>
+        body {
+            font-family: var(--font-family);
+            background-color: var(--color-background);
+            color: var(--color-text-primary);
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        
+        .test-section {
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: var(--color-background-secondary);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .test-section h2 {
+            color: var(--color-primary);
+            margin-bottom: 1.5rem;
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-bold);
+        }
+        
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .color-box {
+            padding: 1rem;
+            border-radius: var(--border-radius-md);
+            text-align: center;
+            font-weight: var(--font-weight-medium);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .btn {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border: none;
+            border-radius: var(--border-radius-md);
+            font-family: var(--font-family);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            cursor: pointer;
+            transition: var(--transition-base);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+            white-space: nowrap;
+        }
+        
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--color-primary-hover);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn-secondary {
+            background-color: var(--color-secondary);
+            color: var(--color-text-primary);
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--color-secondary-hover);
+        }
+        
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .icon-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            background: white;
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition-base);
+        }
+        
+        .icon-item:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        
+        .icon-display {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Icônes dans les boutons */
+        .btn .icon-display {
+            width: 16px;
+            height: 16px;
+            margin-bottom: 0;
+            display: inline-block;
+        }
+        
+        /* Forcer la visibilité des icônes blanches dans les boutons primaires */
+        .btn-primary .icon-coche {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='white' d='M6.127 13.972c-.153.154-.361.24-.578.24-.216 0-.425-.086-.577-.24L.359 9.359c-.479-.479-.479-1.255 0-1.733l.578-.577c.478-.479 1.254-.479 1.732 0l2.88 2.879 7.782-7.781c.478-.479 1.255-.479 1.732 0l.578.577c.479.479.479 1.255 0 1.733l-9.514 9.515z'/%3E%3C/svg%3E");
+        }
+        
+        .btn-primary .icon-validation {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='white' d='M6.127 13.972c-.153.154-.361.24-.578.24-.216 0-.425-.086-.577-.24L.359 9.359c-.479-.479-.479-1.255 0-1.733l.578-.577c.478-.479 1.254-.479 1.732 0l2.88 2.879 7.782-7.781c.478-.479 1.255-.479 1.732 0l.578.577c.479.479.479 1.255 0 1.733l-9.514 9.515z'/%3E%3C/svg%3E");
+        }
+        
+        .icon-name {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+            text-align: center;
+            word-break: break-word;
+        }
+        
+        .typography-example {
+            margin-bottom: 1rem;
+        }
+        
+        .spacing-indicator {
+            background: var(--color-primary);
+            color: white;
+            padding: var(--spacing-xs);
+            border-radius: var(--border-radius-sm);
+            margin: 0.25rem 0;
+            font-size: var(--font-size-xs);
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Variables CSS - Tract V2</h1>
+    
+    <!-- Test des couleurs -->
+    <div class="test-section">
+        <h2>🎨 Palette de Couleurs</h2>
+        <div class="color-grid">
+            <div class="color-box" style="background-color: var(--color-primary); color: white;">
+                Primary<br>#C366F2
+            </div>
+            <div class="color-box" style="background-color: var(--color-primary-hover); color: white;">
+                Primary Hover<br>#934BB7
+            </div>
+            <div class="color-box" style="background-color: var(--color-primary-dark); color: white;">
+                Primary Dark<br>#62307B
+            </div>
+            <div class="color-box" style="background-color: var(--color-primary-darker); color: white;">
+                Primary Darker<br>#32183E
+            </div>
+            <div class="color-box" style="background-color: var(--color-secondary); color: var(--color-text-primary);">
+                Secondary<br>#6c757d
+            </div>
+            <div class="color-box" style="background-color: var(--color-success); color: white;">
+                Success<br>#28a745
+            </div>
+            <div class="color-box" style="background-color: var(--color-warning); color: var(--color-text-primary);">
+                Warning<br>#ffc107
+            </div>
+            <div class="color-box" style="background-color: var(--color-error); color: white;">
+                Error<br>#dc3545
+            </div>
+            <div class="color-box" style="background-color: var(--color-background); color: var(--color-text-primary); border: 1px solid var(--color-border);">
+                Background<br>#FEFCFF
+            </div>
+            <div class="color-box" style="background-color: var(--color-background-secondary); color: var(--color-text-primary);">
+                Background Secondary<br>#FCF7FF
+            </div>
+        </div>
+    </div>
+    
+    <!-- Test des boutons -->
+    <div class="test-section">
+        <h2>🔘 Boutons</h2>
+        <div class="button-grid">
+            <button class="btn btn-primary">
+                <span class="icon-display icon-validation"></span>
+                Bouton Principal
+            </button>
+            <button class="btn btn-secondary">
+                <span class="icon-display icon-ampoule"></span>
+                Bouton Secondaire
+            </button>
+            <button class="btn btn-primary">
+                <span class="icon-display icon-coche"></span>
+                Validation
+            </button>
+            <button class="btn btn-secondary">
+                <span class="icon-display icon-croix"></span>
+                Fermer
+            </button>
+        </div>
+    </div>
+    
+    <!-- Test des icônes -->
+    <div class="test-section">
+        <h2>🎯 Icônes - Interface</h2>
+        <div class="icon-grid">
+            <div class="icon-item">
+                <span class="icon-display icon-popup-import"></span>
+                <span class="icon-name">Import</span>
+            </div>
+            <div class="icon-item">
+                <span class="icon-display icon-popup-search"></span>
+                <span class="icon-name">Recherche</span>
+            </div>
+            <div class="icon-item">
+                <span class="icon-display icon-ampoule"></span>
+                <span class="icon-name">Info</span>
+            </div>
+            <div class="icon-item">
+                <span class="icon-display icon-croix"></span>
+                <span class="icon-name">Fermer</span>
+            </div>
+            <div class="icon-item">
+                <span class="icon-display icon-coche"></span>
+                <span class="icon-name">Coche</span>
+            </div>
+            <div class="icon-item">
+                <span class="icon-display icon-validation"></span>
+                <span class="icon-name">Validation</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Test des icônes d'outils -->
+    <div class="test-section">
+        <h2>🛠️ Icônes - Outils</h2>
+        <div class="icon-grid">
+            <div class="icon-item">
+                <span class="icon-display icon-tool-cercle"></span>
+                <span class="icon-name">Cercle</span>
+            </div>
+            <div class="icon-item">
+                <span class="icon-display icon-tool-isochrone"></span>
+                <span class="icon-name">Isochrone</span>
+            </div>
+            <div class="icon-item">
+                <span class="icon-display icon-tool-polygone"></span>
+                <span class="icon-name">Polygone</span>
+            </div>
+            <div class="icon-item">
+                <span class="icon-display icon-tool-reset"></span>
+                <span class="icon-name">Reset</span>
+            </div>
+            <div class="icon-item">
+                <span class="icon-display icon-tool-adresse"></span>
+                <span class="icon-name">Adresse</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Test des icônes de transport -->
+    <div class="test-section">
+        <h2>🚶 Icônes - Transport</h2>
+        <div class="icon-grid">
+            <div class="icon-item">
+                <span class="icon-display icon-pieton"></span>
+                <span class="icon-name">Piéton</span>
+            </div>
+            <div class="icon-item">
+                <span class="icon-display icon-voiture"></span>
+                <span class="icon-name">Voiture</span>
+            </div>
+            <div class="icon-item">
+                <span class="icon-display icon-velo"></span>
+                <span class="icon-name">Vélo</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Test des icônes de recentrage -->
+    <div class="test-section">
+        <h2>📍 Icônes - Recentrage</h2>
+        <div class="icon-grid">
+            <div class="icon-item">
+                <span class="icon-display icon-recenter-store"></span>
+                <span class="icon-name">Recentrer Store</span>
+            </div>
+            <div class="icon-item">
+                <span class="icon-display icon-recenter-selection"></span>
+                <span class="icon-name">Recentrer Sélection</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Test des icônes de zoom -->
+    <div class="test-section">
+        <h2>🔍 Icônes - Zoom</h2>
+        <div class="icon-grid">
+            <div class="icon-item">
+                <span class="icon-display icon-zoom-plus"></span>
+                <span class="icon-name">Zoom Plus</span>
+            </div>
+            <div class="icon-item">
+                <span class="icon-display icon-zoom-moins"></span>
+                <span class="icon-name">Zoom Moins</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Test des icônes de modes -->
+    <div class="test-section">
+        <h2>🔄 Icônes - Modes</h2>
+        <div class="icon-grid">
+            <div class="icon-item">
+                <span class="icon-display icon-mode-new"></span>
+                <span class="icon-name">Mode Nouveau</span>
+            </div>
+            <div class="icon-item">
+                <span class="icon-display icon-mode-add"></span>
+                <span class="icon-name">Mode Ajouter</span>
+            </div>
+            <div class="icon-item">
+                <span class="icon-display icon-mode-remove"></span>
+                <span class="icon-name">Mode Retirer</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Test des icônes de recherche -->
+    <div class="test-section">
+        <h2>🔎 Icônes - Recherche</h2>
+        <div class="icon-grid">
+            <div class="icon-item">
+                <span class="icon-display icon-search"></span>
+                <span class="icon-name">Recherche</span>
+            </div>
+            <div class="icon-item">
+                <span class="icon-display icon-search-clear"></span>
+                <span class="icon-name">Effacer Recherche</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Test de la typographie -->
+    <div class="test-section">
+        <h2>📝 Typographie</h2>
+        <div class="typography-example">
+            <h1 style="font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold);">Titre H1 - 2XL</h1>
+            <h2 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-bold);">Titre H2 - XL</h2>
+            <h3 style="font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold);">Titre H3 - LG</h3>
+            <p style="font-size: var(--font-size-base);">Texte normal - Base</p>
+            <p style="font-size: var(--font-size-sm);">Texte petit - SM</p>
+            <p style="font-size: var(--font-size-xs);">Texte très petit - XS</p>
+        </div>
+    </div>
+    
+    <!-- Test des espacements -->
+    <div class="test-section">
+        <h2>📏 Espacements</h2>
+        <div class="spacing-indicator" style="padding: var(--spacing-xs);">Espacement XS</div>
+        <div class="spacing-indicator" style="padding: var(--spacing-sm);">Espacement SM</div>
+        <div class="spacing-indicator" style="padding: var(--spacing-md);">Espacement MD</div>
+        <div class="spacing-indicator" style="padding: var(--spacing-lg);">Espacement LG</div>
+        <div class="spacing-indicator" style="padding: var(--spacing-xl);">Espacement XL</div>
+        <div class="spacing-indicator" style="padding: var(--spacing-2xl);">Espacement 2XL</div>
+    </div>
+    
+    <script>
+        console.log('✅ Page de test des variables CSS chargée');
+        console.log('🎨 Couleurs:', {
+            primary: getComputedStyle(document.documentElement).getPropertyValue('--color-primary'),
+            secondary: getComputedStyle(document.documentElement).getPropertyValue('--color-secondary'),
+            background: getComputedStyle(document.documentElement).getPropertyValue('--color-background')
+        });
+    </script>
+</body>
+</html> 

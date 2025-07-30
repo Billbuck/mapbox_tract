@@ -264,10 +264,11 @@ function updateSelectionDisplay() {
         foyersInfo.style.display = showFoyers && GLOBAL_STATE.totalSelectedFoyers > 0 ? 'inline' : 'none';
     }
     
+    // Gérer la visibilité du compteur
     if (count > 0) {
-        counter.classList.remove('hidden');
+        counter.classList.add('active');
     } else {
-        counter.classList.add('hidden');
+        counter.classList.remove('active');
     }
     
     // Mettre à jour le bouton de validation
@@ -296,11 +297,12 @@ function updateCircleRadiusDisplay() {
  * Récupération des paramètres isochrone
  */
 function getIsochroneParams() {
-    const transportSelect = document.getElementById('transport-mode');
+    // Récupérer le mode de transport sélectionné
+    const transportRadio = document.querySelector('input[name="transport-mode"]:checked');
     const timeSlider = document.getElementById('time-range');
     
     return {
-        transport: transportSelect ? transportSelect.value : 'driving',
+        transport: transportRadio ? transportRadio.value : 'driving',
         time: timeSlider ? parseInt(timeSlider.value) : 10
     };
 }
@@ -426,5 +428,109 @@ window.startDrag = startDrag;
 window.closePopup = closePopup;
 window.clearFinalSelection = clearFinalSelection;
 window.clearTempSelection = clearTempSelection;
+
+/**
+ * Gère le changement d'état du switch des libellés
+ * @param {Event} event - L'événement de changement
+ */
+function handleLabelsSwitchChange(event) {
+    const showLabels = event.target.checked;
+    console.log('[UI] Switch libellés:', showLabels ? 'ON' : 'OFF');
+    
+    // Appliquer le changement sur la carte
+    if (window.toggleLabelsVisibility) {
+        window.toggleLabelsVisibility(showLabels);
+    }
+    
+    // Sauvegarder la préférence
+    localStorage.setItem('tract-v2-show-labels', showLabels);
+}
+
+/**
+ * Réinitialise toutes les sélections
+ */
+function resetSelection() {
+    console.log('[UI] Reset selection demandé');
+    
+    // Ouvrir la popup de confirmation
+    const popup = document.getElementById('popup-reset-confirm');
+    if (popup) {
+        popup.classList.add('active');
+        
+        // Position par défaut
+        if (!popup.style.left || popup.style.left === 'auto') {
+            popup.style.left = '180px';
+            popup.style.top = '100px';
+            popup.style.transform = 'none';
+            popup.style.right = 'auto';
+        }
+        
+        // Ajuster la position si elle sort de l'écran
+        setTimeout(() => {
+            const rect = popup.getBoundingClientRect();
+            const appContainer = document.getElementById('app') || document.getElementById('map-container');
+            
+            if (appContainer) {
+                const containerRect = appContainer.getBoundingClientRect();
+                
+                // Vérifier si la popup sort à droite
+                if (rect.right > containerRect.right) {
+                    popup.style.left = 'auto';
+                    popup.style.right = '20px';
+                }
+                
+                // Vérifier si la popup sort en bas
+                if (rect.bottom > containerRect.bottom) {
+                    popup.style.top = (containerRect.height - rect.height - 20) + 'px';
+                }
+            }
+        }, 10);
+    }
+}
+
+/**
+ * Confirme la réinitialisation (appelée depuis la popup)
+ */
+function confirmReset() {
+    console.log('[UI] Réinitialisation confirmée');
+    
+    // Fermer la popup
+    closePopup('reset-confirm');
+    
+    // Effacer les sélections
+    if (window.clearFinalSelection) {
+        window.clearFinalSelection();
+    }
+    if (window.clearTempSelection) {
+        window.clearTempSelection();
+    }
+    
+    // Mettre à jour l'affichage
+    if (window.updateSelectionDisplay) {
+        window.updateSelectionDisplay();
+    }
+    
+    // Afficher un message de confirmation
+    if (window.showStatus) {
+        window.showStatus('Sélection réinitialisée', 'success');
+    }
+}
+
+/**
+ * Ouvre le popup de modification d'adresse
+ */
+function openAddressPopup() {
+    console.log('[UI] Ouverture popup adresse');
+    // Cette fonction sera implémentée dans la phase 5 (popups)
+    if (window.showStatus) {
+        window.showStatus('Fonctionnalité en cours de développement', 'info');
+    }
+}
+
+// Exporter les fonctions
+window.handleLabelsSwitchChange = handleLabelsSwitchChange;
+window.resetSelection = resetSelection;
+window.confirmReset = confirmReset;
+window.openAddressPopup = openAddressPopup;
 
 console.log('✅ Module UI-MANAGER Tract V2 chargé');
