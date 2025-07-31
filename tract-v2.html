@@ -256,6 +256,43 @@
         <div id="status-message" class="status-message"></div>
         <div id="loading-spinner" class="loading-spinner"></div>
         
+        <!-- Popup Adresse -->
+        <div id="popup-address" class="popup">
+            <div class="popup-header" onmousedown="if(!window.isAddressRequired()) startDrag(event, 'popup-address')">
+                <h3 class="popup-title">
+                    <span class="icon-20 icon-tool-adresse"></span>
+                    Adresse du point de vente
+                </h3>
+                <button class="popup-close" id="address-popup-close" onclick="closeAddressPopup(); return false;" style="display: none;">
+                    <span class="icon-16 icon-croix"></span>
+                </button>
+            </div>
+            <div class="popup-content">
+                <div class="address-info">
+                    <span class="icon-16 icon-ampoule"></span>
+                    Recherchez et sélectionnez l'adresse de votre point de vente
+                </div>
+                
+                <!-- Conteneur pour le geocoder Mapbox -->
+                <div id="popup-geocoder-container" class="popup-geocoder-container"></div>
+                
+                <!-- Affichage de l'adresse sélectionnée -->
+                <div id="selected-address-display" class="selected-address" style="display: none;">
+                    <strong>Adresse sélectionnée :</strong>
+                    <p id="selected-address-text"></p>
+                </div>
+            </div>
+            <div class="popup-footer">
+                <button class="popup-btn popup-btn-secondary" id="address-cancel-btn" type="button" onclick="cancelAddressChange(); return false;" style="display: none;">
+                    Annuler
+                </button>
+                <button class="popup-btn popup-btn-primary" id="address-validate-btn" type="button" onclick="validateAddress(); return false;" disabled>
+                    <span class="icon-16 icon-coche"></span>
+                    Valider l'adresse
+                </button>
+            </div>
+        </div>
+        
         <!-- Popup Confirmation Reset -->
         <div id="popup-reset-confirm" class="popup">
             <div class="popup-header" onmousedown="startDrag(event, 'popup-reset-confirm')">
@@ -327,6 +364,7 @@
     <!-- Nouveaux fichiers Tract V2 -->
     <script src="/RepWeb/Tract V2/js/tract-v2-config.js"></script>
     <script src="/RepWeb/Tract V2/js/tract-v2-ui-manager.js"></script>
+    <script src="/RepWeb/Tract V2/js/tract-v2-address-manager.js"></script>
     <script src="/RepWeb/Tract V2/js/tract-v2-map-manager.js"></script>
     <script src="/RepWeb/Tract V2/js/tract-v2-zones-loader.js"></script>
     <script src="/RepWeb/Tract V2/js/tract-v2-selection-manager.js"></script>

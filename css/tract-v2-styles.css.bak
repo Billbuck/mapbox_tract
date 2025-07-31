@@ -29,8 +29,6 @@ body {
     height: 100%;
 }
 
-
-
 #map {
     position: absolute !important;
     top: 0 !important;
@@ -1139,14 +1137,14 @@ body #selection-counter:not(.selection-counter-bottom) {
 
 /* === BARRE DU BAS === */
 #bottom-bar {
-    position: absolute;
+    position: fixed;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    display: flex; /* Ajouté directement pour corriger l'alignement */
+    display: flex;
     align-items: center;
     gap: 20px;
-    z-index: 1000;
+    z-index: 2000;
     pointer-events: none;
 }
 
@@ -1509,104 +1507,4 @@ textarea:focus {
 
 .mb-2 {
     margin-bottom: 0.5rem;
-}
-
-/* === POPUP ADRESSE === */
-#popup-address {
-    min-width: 400px;
-    max-width: 500px;
-}
-
-#popup-address.required .popup-header {
-    cursor: default;
-}
-
-#popup-address.required .popup-close,
-#popup-address.required #address-cancel-btn {
-    display: none !important;
-}
-
-.address-info {
-    background: #F4ECFA; /* Violet clair (adaptation de #FFE6CF) */
-    padding: 12px;
-    border-radius: 6px;
-    font-size: 13px;
-    color: #62307B; /* Violet foncé (adaptation de #D15022) */
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-/* Conteneur du geocoder dans la popup */
-.popup-geocoder-container {
-    margin: 15px 0;
-}
-
-/* Personnalisation du geocoder Mapbox dans la popup */
-.popup-geocoder-container .mapboxgl-ctrl-geocoder {
-    min-width: 100%;
-    max-width: 100%;
-    box-shadow: none;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-}
-
-.popup-geocoder-container .mapboxgl-ctrl-geocoder--input {
-    font-size: 14px;
-    padding: 10px 40px 10px 40px;
-    height: 40px;
-}
-
-.popup-geocoder-container .mapboxgl-ctrl-geocoder--icon-search {
-    width: 20px;
-    height: 20px;
-    top: 10px;
-    left: 10px;
-}
-
-.popup-geocoder-container .mapboxgl-ctrl-geocoder--button {
-    width: 20px;
-    height: 20px;
-    top: 10px;
-    right: 10px;
-}
-
-.popup-geocoder-container .mapboxgl-ctrl-geocoder--suggestions {
-    top: 42px;
-    border-radius: 6px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-}
-
-/* Affichage de l'adresse sélectionnée */
-.selected-address {
-    background: #f5f5f5;
-    padding: 12px;
-    border-radius: 6px;
-    margin-top: 15px;
-}
-
-.selected-address strong {
-    display: block;
-    margin-bottom: 5px;
-    color: #333;
-    font-size: 13px;
-}
-
-.selected-address p {
-    margin: 0;
-    color: #666;
-    font-size: 14px;
-}
-
-/* Forcer le z-index en mode adresse requise */
-body.address-required #popup-address {
-    z-index: 10001;
-}
-
-/* Position par défaut de la popup */
-#popup-address {
-    position: absolute;
-    left: 100px;
-    top: 150px;
 }
