@@ -184,30 +184,57 @@ function InitialiserCarte(lat, lng, adresse) {
     
     // Attendre que la carte soit chargée
     setTimeout(function() {
-        // Définir la position du magasin
-        GLOBAL_STATE.storeLocation = [lng, lat];
-        GLOBAL_STATE.hasValidatedAddress = true;
-        
-        // Créer le marqueur
-        createStoreMarker(GLOBAL_STATE.storeLocation, adresse);
-        
-        // Centrer la carte
-        APP.map.flyTo({
-            center: GLOBAL_STATE.storeLocation,
-            zoom: 14
-        });
-        
-        // Charger les zones
-        setTimeout(function() {
-            loadZonesForCurrentView(true);
-        }, 500);
-        
-        // Mettre à jour WebDev
-        if (window.updateSelectionWebDev) {
-            window.updateSelectionWebDev(0, 0);
+        // Vérifier si les paramètres sont vides
+        if (!lat || !lng || !adresse || 
+            lat === '' || lng === '' || adresse === '' ||
+            lat === 0 || lng === 0) {
+            
+            console.log('[InitialiserCarte] Paramètres vides - ouverture popup adresse');
+            
+            // Ne PAS définir hasValidatedAddress à true
+            GLOBAL_STATE.hasValidatedAddress = false;
+            
+            // Ouvrir la popup d'adresse en mode obligatoire
+            if (window.openAddressPopup) {
+                // Attendre un peu pour s'assurer que tout est prêt
+                setTimeout(function() {
+                    window.openAddressPopup();
+                }, 500);
+            }
+            
+            // Centrer sur la France par défaut
+            APP.map.flyTo({
+                center: [2.213749, 46.227638],
+                zoom: 5.5
+            });
+            
+        } else {
+            // Paramètres valides - comportement normal
+            // Définir la position du magasin
+            GLOBAL_STATE.storeLocation = [lng, lat];
+            GLOBAL_STATE.hasValidatedAddress = true;
+            
+            // Créer le marqueur
+            createStoreMarker(GLOBAL_STATE.storeLocation, adresse);
+            
+            // Centrer la carte
+            APP.map.flyTo({
+                center: GLOBAL_STATE.storeLocation,
+                zoom: 14
+            });
+            
+            // Charger les zones
+            setTimeout(function() {
+                loadZonesForCurrentView(true);
+            }, 500);
+            
+            // Mettre à jour WebDev
+            if (window.updateSelectionWebDev) {
+                window.updateSelectionWebDev(0, 0);
+            }
+            
+            showStatus(`Point de vente défini : ${adresse}`, 'success');
         }
-        
-        showStatus(`Point de vente défini : ${adresse}`, 'success');
     }, 1000);
 }
 
