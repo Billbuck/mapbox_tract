@@ -177,45 +177,58 @@ function setupPopupControlEvents() {
 // ===== INTÉGRATION AVEC WEBDEV =====
 
 /**
- * Fonction appelée par WebDev - Version simple qui fonctionne
+ * Fonction appelée par WebDev - Version avec JSON
+ * @param {Object|string} jsonData - Les données de l'étude (objet ou chaîne JSON)
  */
-function InitialiserCarte(lat, lng, adresse) {
-    console.log('=== InitialiserCarte APPELÉE ===', { lat, lng, adresse });
+function InitialiserCarte(jsonData) {
+    console.log('=== InitialiserCarte APPELÉE ===', jsonData);
     
     // Attendre que la carte soit chargée
     setTimeout(function() {
-        // Vérifier si les paramètres sont vides
-        if (!lat || !lng || !adresse || 
-            lat === '' || lng === '' || adresse === '' ||
-            lat === 0 || lng === 0) {
-            
-            console.log('[InitialiserCarte] Paramètres vides - ouverture popup adresse');
-            
-            // Ne PAS définir hasValidatedAddress à true
-            GLOBAL_STATE.hasValidatedAddress = false;
-            
-            // Ouvrir la popup d'adresse en mode obligatoire
-            if (window.openAddressPopup) {
-                // Attendre un peu pour s'assurer que tout est prêt
-                setTimeout(function() {
-                    window.openAddressPopup();
-                }, 500);
+        try {
+            // Parser le JSON si c'est une chaîne
+            let studyData = null;
+            if (typeof jsonData === 'string') {
+                if (jsonData && jsonData.trim() !== '') {
+                    studyData = JSON.parse(jsonData);
+                }
+            } else {
+                studyData = jsonData;
             }
             
-            // Centrer sur la France par défaut
-            APP.map.flyTo({
-                center: [2.213749, 46.227638],
-                zoom: 5.5
-            });
+            console.log('[InitialiserCarte] Données parsées:', studyData);
             
-        } else {
-            // Paramètres valides - comportement normal
+            // CAS 1 : JSON vide ou null - Forcer la demande d'adresse
+            if (!studyData || !studyData.store || !studyData.store.adresse) {
+                console.log('[InitialiserCarte] CAS 1 - JSON vide - ouverture popup adresse obligatoire');
+                
+                GLOBAL_STATE.hasValidatedAddress = false;
+                
+                // Ouvrir la popup d'adresse en mode obligatoire
+                if (window.openAddressPopup) {
+                    setTimeout(function() {
+                        window.openAddressPopup();
+                    }, 500);
+                }
+                
+                // Centrer sur la France par défaut
+                APP.map.flyTo({
+                    center: [2.213749, 46.227638],
+                    zoom: 5.5
+                });
+                
+                return;
+            }
+            
+            // CAS 2 & 3 : Adresse présente
+            const store = studyData.store;
+            
             // Définir la position du magasin
-            GLOBAL_STATE.storeLocation = [lng, lat];
+            GLOBAL_STATE.storeLocation = [store.longitude, store.latitude];
             GLOBAL_STATE.hasValidatedAddress = true;
             
             // Créer le marqueur
-            createStoreMarker(GLOBAL_STATE.storeLocation, adresse);
+            createStoreMarker(GLOBAL_STATE.storeLocation, store.adresse);
             
             // Centrer la carte
             APP.map.flyTo({
@@ -228,12 +241,48 @@ function InitialiserCarte(lat, lng, adresse) {
                 loadZonesForCurrentView(true);
             }, 500);
             
-            // Mettre à jour WebDev
-            if (window.updateSelectionWebDev) {
-                window.updateSelectionWebDev(0, 0);
+            // CAS 3 : JSON complet avec sélection USL
+            if (studyData.selection && studyData.selection.tabUsl && studyData.selection.tabUsl.length > 0) {
+                console.log('[InitialiserCarte] CAS 3 - JSON complet - chargement des USL');
+                
+                // Utiliser la fonction loadStudy qui gère correctement le chargement
+                setTimeout(async function() {
+                    try {
+                        // Appeler loadStudy pour charger proprement l'étude complète
+                        if (window.loadStudy) {
+                            await window.loadStudy(studyData);
+                        } else {
+                            console.error('[InitialiserCarte] Fonction loadStudy non disponible');
+                            showStatus('Erreur : fonction de chargement non disponible', 'error');
+                        }
+                    } catch (error) {
+                        console.error('[InitialiserCarte] Erreur chargement étude:', error);
+                        showStatus('Erreur lors du chargement de l\'étude', 'error');
+                    }
+                }, 2000);
+                
+            } else {
+                // CAS 2 : Adresse seule
+                console.log('[InitialiserCarte] CAS 2 - Adresse seule');
+                showStatus(`Point de vente défini : ${store.adresse}`, 'success');
+                
+                // Mettre à jour WebDev
+                if (window.updateSelectionWebDev) {
+                    window.updateSelectionWebDev(0, 0);
+                }
             }
             
-            showStatus(`Point de vente défini : ${adresse}`, 'success');
+        } catch (error) {
+            console.error('[InitialiserCarte] Erreur:', error);
+            showStatus('Erreur lors de l\'initialisation', 'error');
+            
+            // En cas d'erreur, ouvrir la popup d'adresse
+            GLOBAL_STATE.hasValidatedAddress = false;
+            if (window.openAddressPopup) {
+                setTimeout(function() {
+                    window.openAddressPopup();
+                }, 500);
+            }
         }
     }, 1000);
 }
