@@ -278,13 +278,13 @@ function getStudyDataForSave() {
     
     const studyData = {
         store: {
-            address: storeAddress,
+            adresse: storeAddress,
             longitude: GLOBAL_STATE.storeLocation[0],
             latitude: GLOBAL_STATE.storeLocation[1]
         },
         selection: {
             totalFoyers: GLOBAL_STATE.totalSelectedFoyers,
-            uslIds: Array.from(GLOBAL_STATE.finalUSLSelection.keys())
+            tabUsl: Array.from(GLOBAL_STATE.finalUSLSelection.keys())
         }
     };
     
@@ -310,7 +310,7 @@ async function loadStudy(studyData) {
         
         // 2. Restaurer l'adresse (WebDev)
         if (window.updateWebDevAddress) {
-            window.updateWebDevAddress(studyData.store.address);
+            window.updateWebDevAddress(studyData.store.adresse);
         }
         
         // 3. Restaurer la position du magasin
@@ -321,7 +321,7 @@ async function loadStudy(studyData) {
         GLOBAL_STATE.hasValidatedAddress = true;
         
         // 4. Créer le marqueur
-        createStoreMarker(GLOBAL_STATE.storeLocation, studyData.store.address);
+        createStoreMarker(GLOBAL_STATE.storeLocation, studyData.store.adresse);
         
         // 5. S'assurer qu'on est en mode USL
         const zoneSelector = document.getElementById('zone-type');
@@ -345,7 +345,7 @@ async function loadStudy(studyData) {
         // 8. Restaurer la sélection USL
         let restoredCount = 0;
         
-        studyData.selection.uslIds.forEach(uslId => {
+        studyData.selection.tabUsl.forEach(uslId => {
             const zone = GLOBAL_STATE.uslCache.get(uslId);
             if (zone) {
                 GLOBAL_STATE.finalUSLSelection.set(uslId, zone);
@@ -367,8 +367,8 @@ async function loadStudy(studyData) {
         }
         
         // 11. Message de confirmation
-        const message = `Étude chargée : ${restoredCount}/${studyData.selection.uslIds.length} USL restaurées (${GLOBAL_STATE.totalSelectedFoyers} foyers)`;
-        showStatus(message, restoredCount === studyData.selection.uslIds.length ? 'success' : 'warning');
+        const message = `Étude chargée : ${restoredCount}/${studyData.selection.tabUsl.length} USL restaurées (${GLOBAL_STATE.totalSelectedFoyers} foyers)`;
+        showStatus(message, restoredCount === studyData.selection.tabUsl.length ? 'success' : 'warning');
         
         // 12. Restaurer la préférence des libellés
         const showLabels = localStorage.getItem('tract-v2-show-labels') === 'true';
