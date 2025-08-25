@@ -23,6 +23,10 @@ function initMap() {
     
     APP.map.keyboard.disableRotation();
     APP.map.touchZoomRotate.disableRotation();
+    // Gestion du zoom: désactiver le zoom continu au scroll pour gérer un pas fixe
+    if (APP.map.scrollZoom) {
+        APP.map.scrollZoom.disable();
+    }
     
     APP.map.on('load', () => {
         console.log('[INIT] Carte chargée avec succès');
@@ -34,6 +38,24 @@ function initMap() {
             initializeDrawTool();
         }, 3000);
     });
+
+    // Gestion du zoom molette par pas de 0.25 avec contraintes min/max selon le mode
+    APP.map.getCanvas().addEventListener('wheel', (e) => {
+        try {
+            e.preventDefault();
+            const currentZoom = APP.map.getZoom();
+            const limits = getModeZoomLimits();
+            const delta = e.deltaY > 0 ? -0.25 : 0.25;
+            let newZoom = currentZoom + delta;
+            if (newZoom < limits.minZoom) newZoom = limits.minZoom;
+            if (newZoom > limits.maxZoom) newZoom = limits.maxZoom;
+            if (newZoom !== currentZoom) {
+                APP.map.setZoom(newZoom);
+            }
+        } catch (err) {
+            console.warn('[ZOOM] Erreur gestion molette:', err);
+        }
+    }, { passive: false });
     
     // Gestion des erreurs de carte
     APP.map.on('error', (e) => {
@@ -130,8 +152,6 @@ function setupMapEvents() {
     
     let moveTimeout;
     APP.map.on('moveend', () => {
-        clearTimeout(moveTimeout);
-        
         const bounds = APP.map.getBounds();
         const zoom = APP.map.getZoom();
         console.log('[MOVE-DEBUG] moveend détecté:', {
@@ -146,14 +166,16 @@ function setupMapEvents() {
             hasValidAddress: hasValidAddress()
         });
         
-        moveTimeout = setTimeout(() => {
-            console.log('[MOVE-DEBUG] Déclenchement loadZonesForCurrentView après timeout');
-            if (hasValidAddress()) {
-                loadZonesForCurrentView();
-            } else {
-                console.log('[MOVE-DEBUG] Pas d\'adresse valide, chargement annulé');
-            }
-        }, CONFIG.TIMEOUTS.MOVE_DELAY);
+        // Chargement zones sans délai
+        if (hasValidAddress()) {
+            loadZonesForCurrentView();
+        } else {
+            console.log('[MOVE-DEBUG] Pas d\'adresse valide, chargement annulé');
+        }
+        // Mise à jour instantanée des actions
+        if (typeof updateActionButtonsVisibility === 'function') {
+            updateActionButtonsVisibility();
+        }
     });
     
     // Configuration de la sélection par rectangle
@@ -1003,6 +1025,39 @@ function fitMapToGeometry(map, geometry) {
         });
     } catch (error) {
         console.warn('[FIT ERROR] Impossible d\'ajuster la vue:', error);
+    }
+}
+
+/**
+ * Limites de zoom selon le mode courant
+ */
+function getModeZoomLimits() {
+    try {
+        const isUSL = typeof isInUSLMode === 'function' ? isInUSLMode() : false;
+        const DEFAULT_MAX_ZOOM_USL = 16;
+        const DEFAULT_MAX_ZOOM_FR = 14;
+        const minZoom = isUSL
+            ? (CONFIG.ZONE_LIMITS?.mediaposte?.MIN_ZOOM_DISPLAY ?? 10)
+            : (CONFIG.ZONE_LIMITS?.[GLOBAL_STATE.currentZoneType]?.MIN_ZOOM_DISPLAY ?? 7);
+        const maxZoom = isUSL ? DEFAULT_MAX_ZOOM_USL : DEFAULT_MAX_ZOOM_FR;
+        return { minZoom, maxZoom };
+    } catch (_) {
+        return { minZoom: 7, maxZoom: 16 };
+    }
+}
+
+/**
+ * Incrémente le zoom de la carte avec contraintes et pas fixe
+ */
+function incrementZoom(step) {
+    if (!APP.map) return;
+    const { minZoom, maxZoom } = getModeZoomLimits();
+    const current = APP.map.getZoom();
+    let target = current + step;
+    if (target < minZoom) target = minZoom;
+    if (target > maxZoom) target = maxZoom;
+    if (target !== current) {
+        APP.map.setZoom(target);
     }
 }
 

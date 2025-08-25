@@ -1,0 +1,11 @@
+# Documentation volumineuse
+docs/
+FR/
+marketeam/
+
+# Fichiers de test
+test*.html
+*test*.js
+
+# Référence externe - accessible uniquement sur demande
+Zecible/

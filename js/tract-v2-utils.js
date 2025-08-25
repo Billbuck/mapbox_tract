@@ -330,7 +330,10 @@ function debounce(func, wait) {
  * @returns {Object|null} Bounds {lat_min, lat_max, lng_min, lng_max} ou null si pas de sélection
  */
 function calculateSelectionBounds() {
-    if (GLOBAL_STATE.tempSelection.size === 0) {
+    const selectionMap = (typeof isInUSLMode === 'function' && isInUSLMode())
+        ? GLOBAL_STATE.finalUSLSelection
+        : GLOBAL_STATE.tempSelection;
+    if (!selectionMap || selectionMap.size === 0) {
         return null;
     }
     
@@ -338,7 +341,7 @@ function calculateSelectionBounds() {
     let minLng = Infinity, maxLng = -Infinity;
     
     // Parcourir toutes les zones sélectionnées
-    for (const zone of GLOBAL_STATE.tempSelection.values()) {
+    for (const zone of selectionMap.values()) {
         if (!zone.geometry || !zone.geometry.coordinates) continue;
         
         try {
@@ -421,6 +424,45 @@ function calculateSelectionBounds() {
     
     return bounds;
 }
+
+/**
+ * Recentre la vue sur la sélection courante (USL ou non-USL)
+ */
+function recenterOnSelection(padding = 60) {
+    try {
+        const bounds = calculateSelectionBounds();
+        if (!bounds || !window.APP || !APP.map) {
+            if (typeof showStatus === 'function') {
+                showStatus('Aucune sélection à recentrer', 'warning');
+            }
+            return;
+        }
+        const bbox = [bounds.lng_min, bounds.lat_min, bounds.lng_max, bounds.lat_max];
+        APP.map.fitBounds(bbox, {
+            padding: { top: padding, bottom: padding, left: padding, right: padding },
+            duration: 1000
+        });
+    } catch (e) {
+        console.warn('[RECENTER] Erreur recentrage:', e);
+    }
+}
+
+/**
+ * Recentrer la vue sur le point de vente
+ */
+function recenterOnStore(zoom = 14, duration = 800) {
+    try {
+        if (!window.APP || !APP.map || !GLOBAL_STATE.storeLocation) return;
+        const [lng, lat] = GLOBAL_STATE.storeLocation;
+        APP.map.flyTo({ center: [lng, lat], zoom, duration });
+    } catch (e) {
+        console.warn('[RECENTER STORE] Erreur:', e);
+    }
+}
+
+window.recenterOnStore = recenterOnStore;
+
+window.recenterOnSelection = recenterOnSelection;
 
 /**
  * Vérifie si les bounds de sélection sont entièrement couvertes par les USL chargées

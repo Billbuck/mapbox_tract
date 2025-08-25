@@ -1,0 +1,39 @@
+# Dossiers de cache et build
+cache.gestion de sources/
+dist/
+build/
+node_modules/
+.vscode/
+res/
+
+# Fichiers spécifiques
+*.GdsInfo
+*.bak
+*.log
+*.min.js
+*.min.css
+info_connexion.gds
+
+# Fichiers volumineux non nécessaires
+*.cdr
+*.psd
+*.ai
+*.zip
+*.rar
+
+# Fichiers système
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Fichiers temporaires de l'éditeur
+*~
+*.swp
+*.tmp
+
+# Dossiers de backup
+*_BACKUP*/
+*backup*/
+
+# Référence externe - accessible uniquement sur demande
+Zecible/

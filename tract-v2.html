@@ -80,7 +80,7 @@
             </div>
         </div>
         
-        <!-- Boutons d'action -->
+        <!-- Boutons d'action (GAUCHE) -->
         <div id="action-buttons" class="action-buttons">
             <button type="button" id="reset-btn" class="action-btn-float" onclick="if(window.resetSelection) resetSelection(); return false;" data-tooltip="Réinitialiser la sélection">
                 <div class="icon-wrapper">
@@ -90,6 +90,20 @@
             <button type="button" id="address-btn" class="action-btn-float" onclick="if(window.openAddressPopup) openAddressPopup(); return false;" data-tooltip="Modifier l'adresse">
                 <div class="icon-wrapper">
                     <div class="icon-container icon-30 icon-tool-adresse"></div>
+                </div>
+            </button>
+        </div>
+
+        <!-- Boutons de recentrage (DROITE) -->
+        <div id="recenter-buttons" class="recenter-buttons">
+            <button type="button" id="recenter-store-btn" class="action-btn-float hidden" onclick="if(window.recenterOnStore) recenterOnStore(); return false;" data-tooltip="Recentrer sur le point de vente">
+                <div class="icon-wrapper">
+                    <div class="icon-container icon-30 icon-recenter-store"></div>
+                </div>
+            </button>
+            <button type="button" id="recenter-selection-btn" class="action-btn-float hidden" onclick="if(window.recenterOnSelection) recenterOnSelection(); return false;" data-tooltip="Recentrer sur la sélection">
+                <div class="icon-wrapper">
+                    <div class="icon-container icon-30 icon-recenter-selection"></div>
                 </div>
             </button>
         </div>
@@ -332,12 +346,12 @@
             <div id="zoom-container">
                 <!-- Contrôles de zoom -->
                 <div id="zoom-controls">
-                    <button class="zoom-btn" onclick="if(APP.map) APP.map.zoomOut(); return false;">
+                    <button class="zoom-btn" onclick="if(window.incrementZoom) incrementZoom(-0.25); return false;">
                         <div class="icon-wrapper">
                             <div class="icon-container icon-30 icon-zoom-moins"></div>
                         </div>
                     </button>
-                    <button class="zoom-btn" onclick="if(APP.map) APP.map.zoomIn(); return false;">
+                    <button class="zoom-btn" onclick="if(window.incrementZoom) incrementZoom(0.25); return false;">
                         <div class="icon-wrapper">
                             <div class="icon-container icon-30 icon-zoom-plus"></div>
                         </div>

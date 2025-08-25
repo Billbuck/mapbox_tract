@@ -1,0 +1,4 @@
+# Contexte technique
+- Les endpoints /api/zones/rectangle et /api/france/... sont implémentés côté serveur en WebDev
+- WebDev communique avec le front via le bridge NSPCS (webdev-bridge.js)
+- Ne pas suggérer d'implémenter ces endpoints, ils existent déjà

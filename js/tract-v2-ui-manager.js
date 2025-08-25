@@ -24,6 +24,20 @@ function updateValidateButton() {
 }
 
 /**
+ * Met à jour la visibilité de la barre d'outils (Cercle/Isochrone/Polygone)
+ * Visible uniquement en mode USL
+ */
+function updateToolbarVisibility() {
+    const toolbar = document.getElementById('toolbar');
+    if (!toolbar || typeof isInUSLMode !== 'function') return;
+    if (isInUSLMode()) {
+        toolbar.classList.remove('hidden');
+    } else {
+        toolbar.classList.add('hidden');
+    }
+}
+
+/**
  * Valide la sélection temporaire et lance la conversion
  */
 async function validateTempSelection() {
@@ -158,6 +172,10 @@ function handleZoneTypeChange(event) {
     GLOBAL_STATE.lastZoneType = oldType;
     
     GLOBAL_STATE.currentZoneType = newType;
+    // Mettre à jour la visibilité de la barre d'outils selon le mode
+    if (typeof updateToolbarVisibility === 'function') {
+        updateToolbarVisibility();
+    }
     
     // Si on vient d'une conversion ET qu'on passe en mode USL, ne pas recharger
     if (window.isConversionInProgress && newType === 'mediaposte') {
@@ -273,6 +291,54 @@ function updateSelectionDisplay() {
     
     // Mettre à jour le bouton de validation
     updateValidateButton();
+    // Mettre à jour la visibilité des actions flottantes
+    if (typeof updateActionButtonsVisibility === 'function') {
+        updateActionButtonsVisibility();
+    }
+}
+
+/**
+ * Met à jour la visibilité des boutons d'action (reset / recentrer)
+ */
+function updateActionButtonsVisibility() {
+    const resetBtn = document.getElementById('reset-btn');
+    const recenterSelectionBtn = document.getElementById('recenter-selection-btn');
+    const recenterStoreBtn = document.getElementById('recenter-store-btn');
+    if (!resetBtn || !recenterSelectionBtn || !recenterStoreBtn || !window.APP || !APP.map) return;
+    
+    const hasUSLSelected = GLOBAL_STATE.finalUSLSelection && GLOBAL_STATE.finalUSLSelection.size > 0;
+    const hasTempSelected = GLOBAL_STATE.tempSelection && GLOBAL_STATE.tempSelection.size > 0;
+    
+    // 1) Reset: visible uniquement si au moins une USL est sélectionnée
+    if (hasUSLSelected) resetBtn.classList.remove('hidden'); else resetBtn.classList.add('hidden');
+    
+    // 2) Recentrer sélection: visible si sélection (USL ou temp) ET hors viewport
+    let selectionOutOfView = false;
+    const selectionBounds = (typeof calculateSelectionBounds === 'function') ? calculateSelectionBounds() : null;
+    if (selectionBounds && (hasUSLSelected || hasTempSelected)) {
+        const mapBounds = APP.map.getBounds();
+        // Si une partie de la sélection est hors du viewport
+        if (selectionBounds.lat_min < mapBounds.getSouth() ||
+            selectionBounds.lat_max > mapBounds.getNorth() ||
+            selectionBounds.lng_min < mapBounds.getWest()  ||
+            selectionBounds.lng_max > mapBounds.getEast()) {
+            selectionOutOfView = true;
+        }
+    }
+    if (selectionOutOfView) recenterSelectionBtn.classList.remove('hidden'); else recenterSelectionBtn.classList.add('hidden');
+    
+    // 3) Recentrer point de vente: visible si store existe et hors viewport
+    let storeOutOfView = false;
+    if (GLOBAL_STATE.storeLocation && Array.isArray(GLOBAL_STATE.storeLocation)) {
+        const center = APP.map.getCenter();
+        const mapBounds = APP.map.getBounds();
+        const [lng, lat] = GLOBAL_STATE.storeLocation;
+        // point hors viewport si en dehors des bounds
+        if (lat < mapBounds.getSouth() || lat > mapBounds.getNorth() || lng < mapBounds.getWest() || lng > mapBounds.getEast()) {
+            storeOutOfView = true;
+        }
+    }
+    if (storeOutOfView) recenterStoreBtn.classList.remove('hidden'); else recenterStoreBtn.classList.add('hidden');
 }
 
 // ===== GESTION DES POPUPS OUTILS =====
@@ -421,6 +487,8 @@ window.showStatus = showStatus;
 window.showEstimation = showEstimation;
 window.hideEstimation = hideEstimation;
 window.updateSelectionDisplay = updateSelectionDisplay;
+window.updateActionButtonsVisibility = updateActionButtonsVisibility;
+window.updateToolbarVisibility = updateToolbarVisibility;
 window.updateCircleRadiusDisplay = updateCircleRadiusDisplay;
 window.getIsochroneParams = getIsochroneParams;
 window.switchImportTab = switchImportTab;

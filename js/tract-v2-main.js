@@ -89,6 +89,12 @@ function initializeState() {
     // Mettre à jour l'affichage
     updateSelectionDisplay();
     updateValidateButton();
+    if (typeof updateToolbarVisibility === 'function') {
+        updateToolbarVisibility();
+    }
+    if (typeof updateActionButtonsVisibility === 'function') {
+        updateActionButtonsVisibility();
+    }
     
     console.log('[STATE] État global initialisé');
 }

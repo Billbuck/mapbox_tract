@@ -13,6 +13,20 @@ function switchTool(tool) {
  * Exécution du changement d'outil
  */
 function performToolSwitch(tool) {
+    // Vider la sélection USL si on active un outil de dessin en mode USL
+    if ((tool === 'circle' || tool === 'isochrone' || tool === 'polygon')
+        && typeof isInUSLMode === 'function' && isInUSLMode()
+        && GLOBAL_STATE.finalUSLSelection && GLOBAL_STATE.finalUSLSelection.size > 0) {
+        if (typeof clearFinalSelection === 'function') {
+            clearFinalSelection();
+        } else {
+            GLOBAL_STATE.finalUSLSelection.clear();
+            GLOBAL_STATE.totalSelectedFoyers = 0;
+            if (typeof updateSelectionDisplay === 'function') updateSelectionDisplay();
+            if (typeof updateSelectedZonesDisplay === 'function') updateSelectedZonesDisplay();
+        }
+    }
+
     GLOBAL_STATE.currentTool = tool;
     
     // Nettoyer les outils précédents
