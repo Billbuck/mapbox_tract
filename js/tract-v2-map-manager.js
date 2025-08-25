@@ -47,7 +47,13 @@ function initMap() {
             const limits = getModeZoomLimits();
             const delta = e.deltaY > 0 ? -0.25 : 0.25;
             let newZoom = currentZoom + delta;
-            if (newZoom < limits.minZoom) newZoom = limits.minZoom;
+            if (newZoom < limits.minZoom) {
+                newZoom = limits.minZoom;
+                if (typeof showStatus === 'function') {
+                    const zoneLabel = typeof getCurrentZoneConfig === 'function' ? getCurrentZoneConfig().label : 'zones';
+                    showStatus(`Zoomez pour voir les ${zoneLabel} (zoom min: ${limits.minZoom})`, 'warning');
+                }
+            }
             if (newZoom > limits.maxZoom) newZoom = limits.maxZoom;
             if (newZoom !== currentZoom) {
                 APP.map.setZoom(newZoom);

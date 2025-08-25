@@ -702,7 +702,9 @@ function shouldLoadZones(forceReload) {
     }
     
     const currentZoom = APP.map.getZoom();
-    const minZoom = CONFIG.ZONE_LIMITS[GLOBAL_STATE.currentZoneType].MIN_ZOOM_DISPLAY;
+    const minZoom = (typeof getCurrentZoneLimits === 'function')
+        ? getCurrentZoneLimits().MIN_ZOOM_DISPLAY
+        : CONFIG.ZONE_LIMITS[GLOBAL_STATE.currentZoneType].MIN_ZOOM_DISPLAY;
     
     console.log('[LOAD-DEBUG] Vérification zoom:', {
         currentZoom,

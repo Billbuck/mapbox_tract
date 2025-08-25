@@ -41,11 +41,7 @@
                 <!-- Le geocoder Mapbox sera inséré ici -->
             </div>
             
-            <!-- Bouton Validation (caché par défaut) -->
-            <button id="validate-selection-btn" class="top-bar-btn validate-btn hidden">
-                <span class="icon-container icon-16 icon-coche-white"></span>
-                <span class="btn-text">Valider la sélection</span>
-            </button>
+            <!-- Bouton Validation déplacé dans un conteneur dédié -->
             
             <!-- Switch Afficher les libellés -->
             <div id="labels-control" class="labels-control">
@@ -105,6 +101,14 @@
                 <div class="icon-wrapper">
                     <div class="icon-container icon-30 icon-recenter-selection"></div>
                 </div>
+            </button>
+        </div>
+
+        <!-- Conteneur Validation (centre bas) -->
+        <div id="validate-container" class="validate-container hidden">
+            <button id="validate-selection-btn" class="action-btn-float" onclick="if(window.validateTempSelection) validateTempSelection(); return false;">
+                <span class="icon-container icon-16 icon-coche-white"></span>
+                <span class="btn-text">Valider la sélection</span>
             </button>
         </div>
         

@@ -309,14 +309,35 @@ body {
     display: none !important;
 }
 
-/* Bouton validation spécial */
+/* Conteneur Validation (position absolue au-dessus des zooms) */
+.validate-container {
+    position: absolute;
+    bottom: 70px; /* au-dessus des zooms (20px) + 50px d'espace */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+/* Bouton validation aligné sur le style Importer */
 #validate-selection-btn {
-    background: var(--success-color);
-    animation: pulse 2s infinite;
+    background: #C366F2; /* même violet que #import-button */
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    /* Overrides pour supprimer toute contrainte de largeur/hauteur héritée */
+    min-width: 180px !important;
+    width: auto !important;
+    height: auto !important;
+    white-space: nowrap !important;
+    padding: 12px 24px !important;
 }
 
 #validate-selection-btn:hover {
-    background: #218838;
+    background: #934BB7; /* hover identique à #import-button:hover */
 }
 
 @keyframes pulse {

@@ -7,7 +7,8 @@
  */
 function updateValidateButton() {
     const validateBtn = document.getElementById('validate-selection-btn');
-    if (!validateBtn) return;
+    const validateContainer = document.getElementById('validate-container');
+    if (!validateBtn || !validateContainer) return;
     
     // Afficher le bouton seulement si :
     // 1. Mode non-USL ET
@@ -16,10 +17,10 @@ function updateValidateButton() {
                       (GLOBAL_STATE.tempSelection.size > 0 || GLOBAL_STATE.tempSelectedCount > 0);
     
     if (shouldShow) {
-        validateBtn.classList.remove('hidden');
+        validateContainer.classList.remove('hidden');
         validateBtn.textContent = `✓ Valider la sélection (${GLOBAL_STATE.tempSelection.size} zones)`;
     } else {
-        validateBtn.classList.add('hidden');
+        validateContainer.classList.add('hidden');
     }
 }
 
@@ -175,6 +176,19 @@ function handleZoneTypeChange(event) {
     // Mettre à jour la visibilité de la barre d'outils selon le mode
     if (typeof updateToolbarVisibility === 'function') {
         updateToolbarVisibility();
+    }
+    // Appliquer le zoom par défaut pour le nouveau type (animation courte)
+    try {
+        if (window.APP && APP.map && typeof getCurrentZoneLimits === 'function') {
+            const limits = getCurrentZoneLimits();
+            if (limits && typeof limits.DEFAULT_ZOOM_ON_CHANGE === 'number') {
+                const newZoom = limits.DEFAULT_ZOOM_ON_CHANGE;
+                console.log(`[UI] Application du zoom par défaut pour ${newType}:`, newZoom);
+                APP.map.easeTo({ zoom: newZoom, duration: 500 });
+            }
+        }
+    } catch (e) {
+        console.warn('[UI] Impossible d\'appliquer le zoom par défaut:', e);
     }
     
     // Si on vient d'une conversion ET qu'on passe en mode USL, ne pas recharger

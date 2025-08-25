@@ -62,25 +62,30 @@ const CONFIG = {
     
     ZONE_LIMITS: {
         mediaposte: {
-            MIN_ZOOM_DISPLAY: 10,
+            MIN_ZOOM_DISPLAY: 9,
             DEFAULT_ZOOM_ON_CHANGE: 13,
+            AFTER_IMPORT_ZOOM: 15,
             MAX_ZONES_PER_REQUEST: 2000
         },
         iris: {
             MIN_ZOOM_DISPLAY: 9,
-            DEFAULT_ZOOM_ON_CHANGE: 13
+            DEFAULT_ZOOM_ON_CHANGE: 13,
+            AFTER_IMPORT_ZOOM: 15
         },
         commune: {
             MIN_ZOOM_DISPLAY: 8,
-            DEFAULT_ZOOM_ON_CHANGE: 11
+            DEFAULT_ZOOM_ON_CHANGE: 11,
+            AFTER_IMPORT_ZOOM: 13
         },
         code_postal: {
             MIN_ZOOM_DISPLAY: 7,
-            DEFAULT_ZOOM_ON_CHANGE: 10
+            DEFAULT_ZOOM_ON_CHANGE: 10,
+            AFTER_IMPORT_ZOOM: 12
         },
         departement: {
             MIN_ZOOM_DISPLAY: 5,
-            DEFAULT_ZOOM_ON_CHANGE: 9
+            DEFAULT_ZOOM_ON_CHANGE: 9,
+            AFTER_IMPORT_ZOOM: 10
         }
     },
     
@@ -110,7 +115,8 @@ const CONFIG = {
         SEARCH_DELAY: 300,
         MOVE_DELAY: 800,
         PRECOUNT_DELAY: 300,
-        TOOL_SWITCH_DELAY: 1000
+        TOOL_SWITCH_DELAY: 1000,
+        ZOOM_WARNING_DISPLAY: 3000
     },
     
     URBAN_KEYWORDS: ['Paris', 'Lyon', 'Marseille', 'Toulouse', 'Nice', 'Nantes', 
@@ -220,6 +226,10 @@ function getCurrentZoneConfig() {
     return CONFIG.ZONE_TYPES[GLOBAL_STATE.currentZoneType];
 }
 
+function getCurrentZoneLimits() {
+    return CONFIG.ZONE_LIMITS[GLOBAL_STATE.currentZoneType];
+}
+
 function isInUSLMode() {
     return GLOBAL_STATE.currentZoneType === 'mediaposte';
 }
@@ -229,4 +239,5 @@ window.GLOBAL_STATE = GLOBAL_STATE;
 window.APP = APP;
 window.DRAW_STYLES = DRAW_STYLES;
 window.getCurrentZoneConfig = getCurrentZoneConfig;
+window.getCurrentZoneLimits = getCurrentZoneLimits;
 window.isInUSLMode = isInUSLMode;

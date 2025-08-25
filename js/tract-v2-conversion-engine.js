@@ -283,6 +283,18 @@ function finishConversion(startTime, totalSkippedCount, preciseCalculations = 0,
     if (typeof window.updateToolbarVisibility === 'function') {
         window.updateToolbarVisibility();
     }
+
+    // NOUVEAU : Recentrage automatique sur les USL sélectionnées
+    try {
+        if (window.APP && APP.map && typeof window.recenterOnSelection === 'function') {
+            if (GLOBAL_STATE.finalUSLSelection && GLOBAL_STATE.finalUSLSelection.size > 0) {
+                console.log('[CONVERSION] Recentrage automatique sur la sélection USL');
+                recenterOnSelection(60);
+            }
+        }
+    } catch (e) {
+        console.warn('[CONVERSION] Recentrage automatique échoué:', e);
+    }
     
     const message = `Conversion terminée : ${GLOBAL_STATE.finalUSLSelection.size} USL sélectionnées (${GLOBAL_STATE.totalSelectedFoyers} foyers) en ${duration}ms (${totalSkippedCount} ignorées, ${preciseCalculations} calculs précis, ${directValidations} validations directes)`;
     showStatus(message, 'success');
