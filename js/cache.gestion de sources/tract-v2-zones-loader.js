@@ -171,15 +171,27 @@ async function processLoadedZones(data, bounds, tStart) {
     if (data.data.zones_superieur && data.data.zones_superieur.length > 0) {
         console.log(`[DEBUG] ${data.data.zones_superieur.length} zones supérieures reçues`);
         
+        let validCount = 0;
+        let invalidCount = 0;
+        
         data.data.zones_superieur.forEach(zone => {
             if (validateZoneGeometry(zone)) {
+                validCount++;
                 GLOBAL_STATE.superiorZonesCache.set(zone.code, {
                     code: zone.code,
                     geometry: zone.geometry,
                     type: 'superior'
                 });
+            } else {
+                invalidCount++;
+                console.warn('[DEBUG] Zone supérieure invalide:', zone.code);
             }
         });
+        
+        console.log(`[DEBUG] Zones supérieures: ${validCount} valides, ${invalidCount} invalides`);
+        console.log(`[DEBUG] Cache supérieur: ${GLOBAL_STATE.superiorZonesCache.size} zones`);
+    } else {
+        console.log('[DEBUG] Aucune zone supérieure reçue de l\'API');
     }
     
     // Enregistrer les bounds chargées
@@ -690,7 +702,9 @@ function shouldLoadZones(forceReload) {
     }
     
     const currentZoom = APP.map.getZoom();
-    const minZoom = CONFIG.ZONE_LIMITS[GLOBAL_STATE.currentZoneType].MIN_ZOOM_DISPLAY;
+    const minZoom = (typeof getCurrentZoneLimits === 'function')
+        ? getCurrentZoneLimits().MIN_ZOOM_DISPLAY
+        : CONFIG.ZONE_LIMITS[GLOBAL_STATE.currentZoneType].MIN_ZOOM_DISPLAY;
     
     console.log('[LOAD-DEBUG] Vérification zoom:', {
         currentZoom,

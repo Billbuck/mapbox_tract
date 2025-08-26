@@ -11,7 +11,8 @@ const CONFIG = {
             nameField: 'foyers',
             color: '#FF6B6B',
             opacity: 0.3,
-            isUSL: true
+            isUSL: true,
+            superiorType: null // Pas de zone supérieure pour USL
         },
         iris: {
             id: 'iris',
@@ -21,7 +22,8 @@ const CONFIG = {
             nameField: 'nom_iris',
             color: '#4ECDC4',
             opacity: 0.3,
-            isUSL: false
+            isUSL: false,
+            superiorType: 'commune' // Les communes sont supérieures aux IRIS
         },
         commune: {
             id: 'commune',
@@ -31,7 +33,8 @@ const CONFIG = {
             nameField: 'nom_commune',
             color: '#45B7D1',
             opacity: 0.3,
-            isUSL: false
+            isUSL: false,
+            superiorType: 'departement' // Les départements sont supérieurs aux communes
         },
         code_postal: {
             id: 'code_postal',
@@ -41,7 +44,8 @@ const CONFIG = {
             nameField: 'nom_commune',
             color: '#9C27B0',
             opacity: 0.3,
-            isUSL: false
+            isUSL: false,
+            superiorType: 'departement' // Les départements sont supérieurs aux codes postaux
         },
         departement: {
             id: 'departement',
@@ -51,31 +55,37 @@ const CONFIG = {
             nameField: 'nom_dept',
             color: '#FFA726',
             opacity: 0.25,
-            isUSL: false
+            isUSL: false,
+            superiorType: null // Pas de zone supérieure pour les départements
         }
     },
     
     ZONE_LIMITS: {
         mediaposte: {
-            MIN_ZOOM_DISPLAY: 10,
+            MIN_ZOOM_DISPLAY: 9,
             DEFAULT_ZOOM_ON_CHANGE: 13,
+            AFTER_IMPORT_ZOOM: 15,
             MAX_ZONES_PER_REQUEST: 2000
         },
         iris: {
             MIN_ZOOM_DISPLAY: 9,
-            DEFAULT_ZOOM_ON_CHANGE: 13
+            DEFAULT_ZOOM_ON_CHANGE: 13,
+            AFTER_IMPORT_ZOOM: 15
         },
         commune: {
             MIN_ZOOM_DISPLAY: 8,
-            DEFAULT_ZOOM_ON_CHANGE: 11
+            DEFAULT_ZOOM_ON_CHANGE: 11,
+            AFTER_IMPORT_ZOOM: 13
         },
         code_postal: {
             MIN_ZOOM_DISPLAY: 7,
-            DEFAULT_ZOOM_ON_CHANGE: 10
+            DEFAULT_ZOOM_ON_CHANGE: 10,
+            AFTER_IMPORT_ZOOM: 12
         },
         departement: {
             MIN_ZOOM_DISPLAY: 5,
-            DEFAULT_ZOOM_ON_CHANGE: 9
+            DEFAULT_ZOOM_ON_CHANGE: 9,
+            AFTER_IMPORT_ZOOM: 10
         }
     },
     
@@ -92,10 +102,10 @@ const CONFIG = {
     },
     
     COLORS: {
-        SELECTED_ZONE: '#ff6b6b',
-        SELECTED_TEMP: '#FFA726',
-        DEFAULT_ZONE: '#4A90E2',
-        SUPERIOR_ZONE: '#555555',
+        SELECTED_ZONE: '#C366F2',          // Violet pour les zones sélectionnées (remplace orange #FF7F00)
+        DEFAULT_ZONE_OUTLINE: '#E299FF',   // Violet clair pour le contour des zones non sélectionnées (remplace #FF9500)
+        SUPERIOR_ZONE_OUTLINE: '#555555',  // Gris pour les contours supérieurs (identique)
+        HOVER_ZONE: '#5f27cd',
         CIRCLE_TOOL: '#ffc107',
         ISOCHRONE_TOOL: '#28a745',
         POLYGON_TOOL: '#D20C0C'
@@ -105,7 +115,8 @@ const CONFIG = {
         SEARCH_DELAY: 300,
         MOVE_DELAY: 800,
         PRECOUNT_DELAY: 300,
-        TOOL_SWITCH_DELAY: 1000
+        TOOL_SWITCH_DELAY: 1000,
+        ZOOM_WARNING_DISPLAY: 3000
     },
     
     URBAN_KEYWORDS: ['Paris', 'Lyon', 'Marseille', 'Toulouse', 'Nice', 'Nantes', 
@@ -215,6 +226,10 @@ function getCurrentZoneConfig() {
     return CONFIG.ZONE_TYPES[GLOBAL_STATE.currentZoneType];
 }
 
+function getCurrentZoneLimits() {
+    return CONFIG.ZONE_LIMITS[GLOBAL_STATE.currentZoneType];
+}
+
 function isInUSLMode() {
     return GLOBAL_STATE.currentZoneType === 'mediaposte';
 }
@@ -224,4 +239,5 @@ window.GLOBAL_STATE = GLOBAL_STATE;
 window.APP = APP;
 window.DRAW_STYLES = DRAW_STYLES;
 window.getCurrentZoneConfig = getCurrentZoneConfig;
+window.getCurrentZoneLimits = getCurrentZoneLimits;
 window.isInUSLMode = isInUSLMode;

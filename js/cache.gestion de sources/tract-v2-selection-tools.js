@@ -13,6 +13,20 @@ function switchTool(tool) {
  * Exécution du changement d'outil
  */
 function performToolSwitch(tool) {
+    // Vider la sélection USL si on active un outil de dessin en mode USL
+    if ((tool === 'circle' || tool === 'isochrone' || tool === 'polygon')
+        && typeof isInUSLMode === 'function' && isInUSLMode()
+        && GLOBAL_STATE.finalUSLSelection && GLOBAL_STATE.finalUSLSelection.size > 0) {
+        if (typeof clearFinalSelection === 'function') {
+            clearFinalSelection();
+        } else {
+            GLOBAL_STATE.finalUSLSelection.clear();
+            GLOBAL_STATE.totalSelectedFoyers = 0;
+            if (typeof updateSelectionDisplay === 'function') updateSelectionDisplay();
+            if (typeof updateSelectedZonesDisplay === 'function') updateSelectedZonesDisplay();
+        }
+    }
+
     GLOBAL_STATE.currentTool = tool;
     
     // Nettoyer les outils précédents
@@ -68,25 +82,46 @@ function activateTool(tool) {
     }
     
     // Désactiver tous les boutons
-    document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
     
     // Fermer toutes les popups
     document.querySelectorAll('.popup').forEach(popup => popup.classList.remove('active'));
     
-    // Activer le bouton et ouvrir la popup correspondante
-    if (event && event.target) {
-        event.target.classList.add('active');
-    }
+    // Activer le bouton correspondant
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+        if (btn.dataset.tool === tool) {
+            btn.classList.add('active');
+        }
+    });
     
     const popup = document.getElementById('popup-' + tool);
     if (popup) {
+        // Position par défaut comme dans Zecible
+        if (!popup.style.left || popup.style.left === 'auto') {
+            popup.style.left = '180px';
+            popup.style.top = '100px';
+            popup.style.transform = 'none';
+            popup.style.right = 'auto';
+        }
+        
         popup.classList.add('active');
         
-        // Positionner la popup si première ouverture
-        if (!popup.style.left) {
-            popup.style.left = '80px';
-            popup.style.top = '100px';
-        }
+        // Vérifier après l'affichage si la popup est visible et ajuster si nécessaire
+        setTimeout(() => {
+            const rect = popup.getBoundingClientRect();
+            
+            // Si la popup sort à droite
+            if (rect.right > window.innerWidth - 20) {
+                popup.style.left = (window.innerWidth - rect.width - 20) + 'px';
+            }
+            
+            // Si la popup sort en bas
+            if (rect.bottom > window.innerHeight - 20) {
+                popup.style.top = (window.innerHeight - rect.height - 20) + 'px';
+            }
+        }, 10);
     }
     
     // Appeler la fonction de changement d'outil

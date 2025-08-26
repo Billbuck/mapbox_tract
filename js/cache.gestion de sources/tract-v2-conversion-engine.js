@@ -256,6 +256,10 @@ function finishConversion(startTime, totalSkippedCount, preciseCalculations = 0,
         selector.value = 'mediaposte';
         GLOBAL_STATE.currentZoneType = 'mediaposte';
     }
+    // Assurer que la barre d'outils réapparaît en mode USL
+    if (typeof window.updateToolbarVisibility === 'function') {
+        window.updateToolbarVisibility();
+    }
     
     console.log('[CONVERSION] Terminée:', {
         uslSélectionnées: GLOBAL_STATE.finalUSLSelection.size,
@@ -276,6 +280,21 @@ function finishConversion(startTime, totalSkippedCount, preciseCalculations = 0,
     // Mettre à jour l'interface
     updateSelectionDisplay();
     updateValidateButton();
+    if (typeof window.updateToolbarVisibility === 'function') {
+        window.updateToolbarVisibility();
+    }
+
+    // NOUVEAU : Recentrage automatique sur les USL sélectionnées
+    try {
+        if (window.APP && APP.map && typeof window.recenterOnSelection === 'function') {
+            if (GLOBAL_STATE.finalUSLSelection && GLOBAL_STATE.finalUSLSelection.size > 0) {
+                console.log('[CONVERSION] Recentrage automatique sur la sélection USL');
+                recenterOnSelection(60);
+            }
+        }
+    } catch (e) {
+        console.warn('[CONVERSION] Recentrage automatique échoué:', e);
+    }
     
     const message = `Conversion terminée : ${GLOBAL_STATE.finalUSLSelection.size} USL sélectionnées (${GLOBAL_STATE.totalSelectedFoyers} foyers) en ${duration}ms (${totalSkippedCount} ignorées, ${preciseCalculations} calculs précis, ${directValidations} validations directes)`;
     showStatus(message, 'success');

@@ -89,6 +89,12 @@ function initializeState() {
     // Mettre à jour l'affichage
     updateSelectionDisplay();
     updateValidateButton();
+    if (typeof updateToolbarVisibility === 'function') {
+        updateToolbarVisibility();
+    }
+    if (typeof updateActionButtonsVisibility === 'function') {
+        updateActionButtonsVisibility();
+    }
     
     console.log('[STATE] État global initialisé');
 }
@@ -177,37 +183,113 @@ function setupPopupControlEvents() {
 // ===== INTÉGRATION AVEC WEBDEV =====
 
 /**
- * Fonction appelée par WebDev - Version simple qui fonctionne
+ * Fonction appelée par WebDev - Version avec JSON
+ * @param {Object|string} jsonData - Les données de l'étude (objet ou chaîne JSON)
  */
-function InitialiserCarte(lat, lng, adresse) {
-    console.log('=== InitialiserCarte APPELÉE ===', { lat, lng, adresse });
+function InitialiserCarte(jsonData) {
+    console.log('=== InitialiserCarte APPELÉE ===', jsonData);
     
     // Attendre que la carte soit chargée
     setTimeout(function() {
-        // Définir la position du magasin
-        GLOBAL_STATE.storeLocation = [lng, lat];
-        GLOBAL_STATE.hasValidatedAddress = true;
-        
-        // Créer le marqueur
-        createStoreMarker(GLOBAL_STATE.storeLocation, adresse);
-        
-        // Centrer la carte
-        APP.map.flyTo({
-            center: GLOBAL_STATE.storeLocation,
-            zoom: 14
-        });
-        
-        // Charger les zones
-        setTimeout(function() {
-            loadZonesForCurrentView(true);
-        }, 500);
-        
-        // Mettre à jour WebDev
-        if (window.updateSelectionWebDev) {
-            window.updateSelectionWebDev(0, 0);
+        try {
+            // Parser le JSON si c'est une chaîne
+            let studyData = null;
+            if (typeof jsonData === 'string') {
+                if (jsonData && jsonData.trim() !== '') {
+                    studyData = JSON.parse(jsonData);
+                }
+            } else {
+                studyData = jsonData;
+            }
+            
+            console.log('[InitialiserCarte] Données parsées:', studyData);
+            
+            // CAS 1 : JSON vide ou null - Forcer la demande d'adresse
+            if (!studyData || !studyData.store || !studyData.store.adresse) {
+                console.log('[InitialiserCarte] CAS 1 - JSON vide - ouverture popup adresse obligatoire');
+                
+                GLOBAL_STATE.hasValidatedAddress = false;
+                
+                // Ouvrir la popup d'adresse en mode obligatoire
+                if (window.openAddressPopup) {
+                    setTimeout(function() {
+                        window.openAddressPopup();
+                    }, 500);
+                }
+                
+                // Centrer sur la France par défaut
+                APP.map.flyTo({
+                    center: [2.213749, 46.227638],
+                    zoom: 5.5
+                });
+                
+                return;
+            }
+            
+            // CAS 2 & 3 : Adresse présente
+            const store = studyData.store;
+            
+            // Définir la position du magasin
+            GLOBAL_STATE.storeLocation = [store.longitude, store.latitude];
+            GLOBAL_STATE.hasValidatedAddress = true;
+            
+            // Créer le marqueur
+            createStoreMarker(GLOBAL_STATE.storeLocation, store.adresse);
+            
+            // Centrer la carte
+            APP.map.flyTo({
+                center: GLOBAL_STATE.storeLocation,
+                zoom: 14
+            });
+            
+            // Charger les zones
+            setTimeout(function() {
+                loadZonesForCurrentView(true);
+            }, 500);
+            
+            // CAS 3 : JSON complet avec sélection USL
+            if (studyData.selection && studyData.selection.tabUsl && studyData.selection.tabUsl.length > 0) {
+                console.log('[InitialiserCarte] CAS 3 - JSON complet - chargement des USL');
+                
+                // Utiliser la fonction loadStudy qui gère correctement le chargement
+                setTimeout(async function() {
+                    try {
+                        // Appeler loadStudy pour charger proprement l'étude complète
+                        if (window.loadStudy) {
+                            await window.loadStudy(studyData);
+                        } else {
+                            console.error('[InitialiserCarte] Fonction loadStudy non disponible');
+                            showStatus('Erreur : fonction de chargement non disponible', 'error');
+                        }
+                    } catch (error) {
+                        console.error('[InitialiserCarte] Erreur chargement étude:', error);
+                        showStatus('Erreur lors du chargement de l\'étude', 'error');
+                    }
+                }, 2000);
+                
+            } else {
+                // CAS 2 : Adresse seule
+                console.log('[InitialiserCarte] CAS 2 - Adresse seule');
+                showStatus(`Point de vente défini : ${store.adresse}`, 'success');
+                
+                // Mettre à jour WebDev
+                if (window.updateSelectionWebDev) {
+                    window.updateSelectionWebDev(0, 0);
+                }
+            }
+            
+        } catch (error) {
+            console.error('[InitialiserCarte] Erreur:', error);
+            showStatus('Erreur lors de l\'initialisation', 'error');
+            
+            // En cas d'erreur, ouvrir la popup d'adresse
+            GLOBAL_STATE.hasValidatedAddress = false;
+            if (window.openAddressPopup) {
+                setTimeout(function() {
+                    window.openAddressPopup();
+                }, 500);
+            }
         }
-        
-        showStatus(`Point de vente défini : ${adresse}`, 'success');
     }, 1000);
 }
 
@@ -251,13 +333,13 @@ function getStudyDataForSave() {
     
     const studyData = {
         store: {
-            address: storeAddress,
+            adresse: storeAddress,
             longitude: GLOBAL_STATE.storeLocation[0],
             latitude: GLOBAL_STATE.storeLocation[1]
         },
         selection: {
             totalFoyers: GLOBAL_STATE.totalSelectedFoyers,
-            uslIds: Array.from(GLOBAL_STATE.finalUSLSelection.keys())
+            tabUsl: Array.from(GLOBAL_STATE.finalUSLSelection.keys())
         }
     };
     
@@ -283,7 +365,7 @@ async function loadStudy(studyData) {
         
         // 2. Restaurer l'adresse (WebDev)
         if (window.updateWebDevAddress) {
-            window.updateWebDevAddress(studyData.store.address);
+            window.updateWebDevAddress(studyData.store.adresse);
         }
         
         // 3. Restaurer la position du magasin
@@ -294,7 +376,7 @@ async function loadStudy(studyData) {
         GLOBAL_STATE.hasValidatedAddress = true;
         
         // 4. Créer le marqueur
-        createStoreMarker(GLOBAL_STATE.storeLocation, studyData.store.address);
+        createStoreMarker(GLOBAL_STATE.storeLocation, studyData.store.adresse);
         
         // 5. S'assurer qu'on est en mode USL
         const zoneSelector = document.getElementById('zone-type');
@@ -318,7 +400,7 @@ async function loadStudy(studyData) {
         // 8. Restaurer la sélection USL
         let restoredCount = 0;
         
-        studyData.selection.uslIds.forEach(uslId => {
+        studyData.selection.tabUsl.forEach(uslId => {
             const zone = GLOBAL_STATE.uslCache.get(uslId);
             if (zone) {
                 GLOBAL_STATE.finalUSLSelection.set(uslId, zone);
@@ -340,8 +422,18 @@ async function loadStudy(studyData) {
         }
         
         // 11. Message de confirmation
-        const message = `Étude chargée : ${restoredCount}/${studyData.selection.uslIds.length} USL restaurées (${GLOBAL_STATE.totalSelectedFoyers} foyers)`;
-        showStatus(message, restoredCount === studyData.selection.uslIds.length ? 'success' : 'warning');
+        const message = `Étude chargée : ${restoredCount}/${studyData.selection.tabUsl.length} USL restaurées (${GLOBAL_STATE.totalSelectedFoyers} foyers)`;
+        showStatus(message, restoredCount === studyData.selection.tabUsl.length ? 'success' : 'warning');
+        
+        // 12. Restaurer la préférence des libellés
+        const showLabels = localStorage.getItem('tract-v2-show-labels') === 'true';
+        const labelsSwitch = document.getElementById('labels-switch');
+        if (labelsSwitch) {
+            labelsSwitch.checked = showLabels;
+            if (window.toggleLabelsVisibility) {
+                window.toggleLabelsVisibility(showLabels);
+            }
+        }
         
         return true;
         

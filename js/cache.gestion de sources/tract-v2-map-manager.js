@@ -23,6 +23,10 @@ function initMap() {
     
     APP.map.keyboard.disableRotation();
     APP.map.touchZoomRotate.disableRotation();
+    // Gestion du zoom: désactiver le zoom continu au scroll pour gérer un pas fixe
+    if (APP.map.scrollZoom) {
+        APP.map.scrollZoom.disable();
+    }
     
     APP.map.on('load', () => {
         console.log('[INIT] Carte chargée avec succès');
@@ -34,6 +38,30 @@ function initMap() {
             initializeDrawTool();
         }, 3000);
     });
+
+    // Gestion du zoom molette par pas de 0.25 avec contraintes min/max selon le mode
+    APP.map.getCanvas().addEventListener('wheel', (e) => {
+        try {
+            e.preventDefault();
+            const currentZoom = APP.map.getZoom();
+            const limits = getModeZoomLimits();
+            const delta = e.deltaY > 0 ? -0.25 : 0.25;
+            let newZoom = currentZoom + delta;
+            if (newZoom < limits.minZoom) {
+                newZoom = limits.minZoom;
+                if (typeof showStatus === 'function') {
+                    const zoneLabel = typeof getCurrentZoneConfig === 'function' ? getCurrentZoneConfig().label : 'zones';
+                    showStatus(`Zoomez pour voir les ${zoneLabel} (zoom min: ${limits.minZoom})`, 'warning');
+                }
+            }
+            if (newZoom > limits.maxZoom) newZoom = limits.maxZoom;
+            if (newZoom !== currentZoom) {
+                APP.map.setZoom(newZoom);
+            }
+        } catch (err) {
+            console.warn('[ZOOM] Erreur gestion molette:', err);
+        }
+    }, { passive: false });
     
     // Gestion des erreurs de carte
     APP.map.on('error', (e) => {
@@ -116,10 +144,20 @@ function setupMapEvents() {
         console.log('[STYLE] Layers présents:', layers.length, 'layers');
     });
     
+    // Mettre à jour l'indicateur de zoom
+    function updateZoomIndicator() {
+        const zoomLevel = document.getElementById('zoom-level');
+        if (zoomLevel && APP.map) {
+            zoomLevel.textContent = APP.map.getZoom().toFixed(2);
+        }
+    }
+    
+    APP.map.on('zoom', updateZoomIndicator);
+    APP.map.on('zoomend', updateZoomIndicator);
+    updateZoomIndicator();
+    
     let moveTimeout;
     APP.map.on('moveend', () => {
-        clearTimeout(moveTimeout);
-        
         const bounds = APP.map.getBounds();
         const zoom = APP.map.getZoom();
         console.log('[MOVE-DEBUG] moveend détecté:', {
@@ -134,14 +172,16 @@ function setupMapEvents() {
             hasValidAddress: hasValidAddress()
         });
         
-        moveTimeout = setTimeout(() => {
-            console.log('[MOVE-DEBUG] Déclenchement loadZonesForCurrentView après timeout');
-            if (hasValidAddress()) {
-                loadZonesForCurrentView();
-            } else {
-                console.log('[MOVE-DEBUG] Pas d\'adresse valide, chargement annulé');
-            }
-        }, CONFIG.TIMEOUTS.MOVE_DELAY);
+        // Chargement zones sans délai
+        if (hasValidAddress()) {
+            loadZonesForCurrentView();
+        } else {
+            console.log('[MOVE-DEBUG] Pas d\'adresse valide, chargement annulé');
+        }
+        // Mise à jour instantanée des actions
+        if (typeof updateActionButtonsVisibility === 'function') {
+            updateActionButtonsVisibility();
+        }
     });
     
     // Configuration de la sélection par rectangle
@@ -398,13 +438,19 @@ function updateUSLDisplay() {
         createUSLLayers();
     }
     
-    // IMPORTANT : S'assurer que les layers USL normaux sont visibles
-    if (APP.map.getLayer('zones-usl-fill')) {
-        APP.map.setLayoutProperty('zones-usl-fill', 'visibility', 'visible');
-    }
-    if (APP.map.getLayer('zones-usl-line')) {
-        APP.map.setLayoutProperty('zones-usl-line', 'visibility', 'visible');
-    }
+    // IMPORTANT : S'assurer que tous les layers USL sont visibles
+    const uslLayers = [
+        'zones-usl-fill',
+        'zones-usl-line',
+        'zones-usl-selected',
+        'zones-usl-selected-line'
+    ];
+    
+    uslLayers.forEach(layerId => {
+        if (APP.map.getLayer(layerId)) {
+            APP.map.setLayoutProperty(layerId, 'visibility', 'visible');
+        }
+    });
     
     // Masquer le layer debug s'il existe
     if (APP.map.getLayer('zones-usl-debug-line')) {
@@ -422,7 +468,7 @@ function updateUSLDisplay() {
  */
 function updateUSLDisplayForDebug() {
     const zones = Array.from(GLOBAL_STATE.uslCache.values());
-    console.log(`[DEBUG USL] Affichage de ${zones.length} zones USL en mode debug`);
+    console.log(`[DEBUG USL] ${zones.length} zones USL en cache (mode Non-USL - invisibles)`);
     
     if (zones.length === 0) return;
     
@@ -446,30 +492,20 @@ function updateUSLDisplayForDebug() {
     
     updateSource('zones-usl', geojsonData);
     
-    // Créer des layers spéciaux pour le debug si nécessaire
-    if (!APP.map.getLayer('zones-usl-debug-line')) {
-        APP.map.addLayer({
-            id: 'zones-usl-debug-line',
-            type: 'line',
-            source: 'zones-usl',
-            paint: {
-                'line-color': '#888888',  // Gris
-                'line-width': 1,
-                'line-dasharray': [2, 2]  // Pointillés
-            }
-        });
-    }
+    // En mode Non-USL, les USL sont complètement invisibles (pas de debug)
+    // Masquer tous les layers USL
+    const uslLayers = [
+        'zones-usl-fill',
+        'zones-usl-line',
+        'zones-usl-selected',
+        'zones-usl-selected-line'
+    ];
     
-    // Masquer le layer de remplissage USL en mode non-USL
-    if (APP.map.getLayer('zones-usl-fill')) {
-        APP.map.setLayoutProperty('zones-usl-fill', 'visibility', 'none');
-    }
-    if (APP.map.getLayer('zones-usl-line')) {
-        APP.map.setLayoutProperty('zones-usl-line', 'visibility', 'none');
-    }
-    
-    // Afficher seulement le layer debug
-    APP.map.setLayoutProperty('zones-usl-debug-line', 'visibility', 'visible');
+    uslLayers.forEach(layerId => {
+        if (APP.map.getLayer(layerId)) {
+            APP.map.setLayoutProperty(layerId, 'visibility', 'none');
+        }
+    });
 }
 
 /**
@@ -505,6 +541,7 @@ function updateFranceZonesDisplay() {
     
     // Zones supérieures (contexte)
     const superiorZones = Array.from(GLOBAL_STATE.superiorZonesCache.values());
+    console.log(`[FRANCE] ${superiorZones.length} zones supérieures dans le cache`);
     const superiorGeoJSON = {
         type: 'FeatureCollection',
         features: superiorZones.map(zone => {
@@ -527,28 +564,41 @@ function updateFranceZonesDisplay() {
     updateSource('zones-france', mainGeoJSON);
     updateSource('zones-france-superior', superiorGeoJSON);
     
+    console.log(`[FRANCE] Sources mises à jour - Principal: ${mainGeoJSON.features.length} features, Supérieur: ${superiorGeoJSON.features.length} features`);
+    
     if (!APP.map.getLayer('zones-france-fill')) {
         createFranceLayers();
     }
     
     // IMPORTANT : S'assurer que les layers France sont visibles
-    if (APP.map.getLayer('zones-france-fill')) {
-        APP.map.setLayoutProperty('zones-france-fill', 'visibility', 'visible');
-    }
-    if (APP.map.getLayer('zones-france-line')) {
-        APP.map.setLayoutProperty('zones-france-line', 'visibility', 'visible');
-    }
-    if (APP.map.getLayer('zones-france-superior-line')) {
-        APP.map.setLayoutProperty('zones-france-superior-line', 'visibility', 'visible');
-    }
+    // Afficher tous les layers France
+    const franceLayers = [
+        'zones-france-fill',
+        'zones-france-line',
+        'zones-france-selected',
+        'zones-france-selected-line',
+        'zones-france-superior-line'
+    ];
     
-    // Masquer les layers USL normaux en mode non-USL
-    if (APP.map.getLayer('zones-usl-fill')) {
-        APP.map.setLayoutProperty('zones-usl-fill', 'visibility', 'none');
-    }
-    if (APP.map.getLayer('zones-usl-line')) {
-        APP.map.setLayoutProperty('zones-usl-line', 'visibility', 'none');
-    }
+    franceLayers.forEach(layerId => {
+        if (APP.map.getLayer(layerId)) {
+            APP.map.setLayoutProperty(layerId, 'visibility', 'visible');
+        }
+    });
+    
+    // Masquer TOUS les layers USL en mode non-USL (ils doivent être invisibles)
+    const uslLayers = [
+        'zones-usl-fill',
+        'zones-usl-line',
+        'zones-usl-selected',
+        'zones-usl-selected-line'
+    ];
+    
+    uslLayers.forEach(layerId => {
+        if (APP.map.getLayer(layerId)) {
+            APP.map.setLayoutProperty(layerId, 'visibility', 'none');
+        }
+    });
     
     updateFranceColors();
     
@@ -562,26 +612,52 @@ function updateFranceZonesDisplay() {
 function createUSLLayers() {
     console.log('[LAYERS] Création des layers USL...');
     
-    // Layer de remplissage
+    // Layer de remplissage (transparent par défaut comme Zecible)
     APP.map.addLayer({
         id: 'zones-usl-fill',
         type: 'fill',
         source: 'zones-usl',
         paint: {
-            'fill-color': CONFIG.COLORS.DEFAULT_ZONE,
-            'fill-opacity': 0.3
+            'fill-color': CONFIG.COLORS.DEFAULT_ZONE_OUTLINE,
+            'fill-opacity': 0
         }
     });
     
-    // Layer de contour
+    // Layer de contour (violet clair comme Zecible)
     APP.map.addLayer({
         id: 'zones-usl-line',
         type: 'line',
         source: 'zones-usl',
         paint: {
-            'line-color': CONFIG.COLORS.DEFAULT_ZONE,
-            'line-width': 1
+            'line-color': CONFIG.COLORS.DEFAULT_ZONE_OUTLINE,
+            'line-width': 1,
+            'line-opacity': 1  // Opacité complète comme Zecible
         }
+    });
+    
+    // Layer sélection remplissage
+    APP.map.addLayer({
+        id: 'zones-usl-selected',
+        type: 'fill',
+        source: 'zones-usl',
+        paint: {
+            'fill-color': CONFIG.COLORS.SELECTED_ZONE,
+            'fill-opacity': 0.6
+        },
+        filter: ['in', 'id', '']
+    });
+    
+    // Layer sélection contour
+    APP.map.addLayer({
+        id: 'zones-usl-selected-line',
+        type: 'line',
+        source: 'zones-usl',
+        paint: {
+            'line-color': CONFIG.COLORS.SELECTED_ZONE,
+            'line-width': 2,
+            'line-opacity': 1  // Opacité complète comme Zecible
+        },
+        filter: ['in', 'id', '']
     });
     
     // IMPORTANT : Configurer les événements de clic
@@ -594,37 +670,67 @@ function createUSLLayers() {
 function createFranceLayers() {
     console.log('[LAYERS] Création des layers France...');
     
-    // Zones supérieures (fond)
-    APP.map.addLayer({
-        id: 'zones-france-superior-line',
-        type: 'line',
-        source: 'zones-france-superior',
-        paint: {
-            'line-color': CONFIG.COLORS.SUPERIOR_ZONE,
-            'line-width': 2,
-            'line-opacity': 0.6
-        }
-    });
+    // ORDRE IMPORTANT : Les zones principales d'abord
     
-    // Zones principales (remplissage)
+    // Zones principales (remplissage transparent par défaut)
     APP.map.addLayer({
         id: 'zones-france-fill',
         type: 'fill',
         source: 'zones-france',
         paint: {
-            'fill-color': getCurrentZoneConfig().color,
-            'fill-opacity': 0.3
+            'fill-color': CONFIG.COLORS.DEFAULT_ZONE_OUTLINE,
+            'fill-opacity': 0
         }
     });
     
-    // Zones principales (contour)
+    // Zones principales (contour violet clair)
     APP.map.addLayer({
         id: 'zones-france-line',
         type: 'line',
         source: 'zones-france',
         paint: {
-            'line-color': getCurrentZoneConfig().color,
-            'line-width': 1.5
+            'line-color': CONFIG.COLORS.DEFAULT_ZONE_OUTLINE,
+            'line-width': 1,
+            'line-opacity': 1  // Opacité complète comme Zecible
+        }
+    });
+    
+    // Layer sélection remplissage
+    APP.map.addLayer({
+        id: 'zones-france-selected',
+        type: 'fill',
+        source: 'zones-france',
+        paint: {
+            'fill-color': CONFIG.COLORS.SELECTED_ZONE,
+            'fill-opacity': 0.6
+        },
+        filter: ['in', 'id', '']
+    });
+    
+    // Layer sélection contour
+    APP.map.addLayer({
+        id: 'zones-france-selected-line',
+        type: 'line',
+        source: 'zones-france',
+        paint: {
+            'line-color': CONFIG.COLORS.SELECTED_ZONE,
+            'line-width': 2,
+            'line-opacity': 1
+        },
+        filter: ['in', 'id', '']
+    });
+    
+    // LAYER SUPÉRIEUR EN DERNIER (comme Zecible) - Contours gris pointillés
+    // On l'ajoute APRÈS tous les autres layers pour qu'il soit au-dessus
+    APP.map.addLayer({
+        id: 'zones-france-superior-line',
+        type: 'line',
+        source: 'zones-france-superior',
+        paint: {
+            'line-color': CONFIG.COLORS.SUPERIOR_ZONE_OUTLINE,  // #555555 - Gris
+            'line-width': 1,
+            'line-opacity': 1,
+            'line-dasharray': [10, 3]  // Pointillés comme Zecible
         }
     });
     
@@ -656,28 +762,19 @@ function updateSource(sourceId, data) {
  * Mise à jour des couleurs USL
  */
 function updateUSLColors() {
-    if (!APP.map.getLayer('zones-usl-fill')) return;
+    if (!APP.map.getLayer('zones-usl-selected')) return;
     
-    if (GLOBAL_STATE.finalUSLSelection.size === 0) {
-        APP.map.setPaintProperty('zones-usl-fill', 'fill-color', CONFIG.COLORS.DEFAULT_ZONE);
-        APP.map.setPaintProperty('zones-usl-fill', 'fill-opacity', 0.3);
+    // Mettre à jour les filtres des layers de sélection
+    const selectedIds = Array.from(GLOBAL_STATE.finalUSLSelection.keys());
+    
+    if (selectedIds.length === 0) {
+        // Aucune sélection
+        APP.map.setFilter('zones-usl-selected', ['in', 'id', '']);
+        APP.map.setFilter('zones-usl-selected-line', ['in', 'id', '']);
     } else {
-        const colorExpression = ['case'];
-        const opacityExpression = ['case'];
-        
-        GLOBAL_STATE.finalUSLSelection.forEach((zone, zoneId) => {
-            colorExpression.push(['==', ['get', 'id'], zoneId]);
-            colorExpression.push(CONFIG.COLORS.SELECTED_ZONE);
-            
-            opacityExpression.push(['==', ['get', 'id'], zoneId]);
-            opacityExpression.push(0.7);
-        });
-        
-        colorExpression.push(CONFIG.COLORS.DEFAULT_ZONE);
-        opacityExpression.push(0.3);
-        
-        APP.map.setPaintProperty('zones-usl-fill', 'fill-color', colorExpression);
-        APP.map.setPaintProperty('zones-usl-fill', 'fill-opacity', opacityExpression);
+        // Appliquer le filtre pour les zones sélectionnées
+        APP.map.setFilter('zones-usl-selected', ['in', 'id', ...selectedIds]);
+        APP.map.setFilter('zones-usl-selected-line', ['in', 'id', ...selectedIds]);
     }
 }
 
@@ -685,29 +782,19 @@ function updateUSLColors() {
  * Mise à jour des couleurs France
  */
 function updateFranceColors() {
-    if (!APP.map.getLayer('zones-france-fill')) return;
+    if (!APP.map.getLayer('zones-france-selected')) return;
     
-    if (GLOBAL_STATE.tempSelection.size === 0) {
-        const zoneConfig = getCurrentZoneConfig();
-        APP.map.setPaintProperty('zones-france-fill', 'fill-color', zoneConfig.color);
-        APP.map.setPaintProperty('zones-france-fill', 'fill-opacity', 0.3);
+    // Mettre à jour les filtres des layers de sélection
+    const selectedIds = Array.from(GLOBAL_STATE.tempSelection.keys());
+    
+    if (selectedIds.length === 0) {
+        // Aucune sélection
+        APP.map.setFilter('zones-france-selected', ['in', 'id', '']);
+        APP.map.setFilter('zones-france-selected-line', ['in', 'id', '']);
     } else {
-        const colorExpression = ['case'];
-        const opacityExpression = ['case'];
-        
-        GLOBAL_STATE.tempSelection.forEach((zone, zoneId) => {
-            colorExpression.push(['==', ['get', 'id'], zoneId]);
-            colorExpression.push(CONFIG.COLORS.SELECTED_TEMP);
-            
-            opacityExpression.push(['==', ['get', 'id'], zoneId]);
-            opacityExpression.push(0.7);
-        });
-        
-        colorExpression.push(getCurrentZoneConfig().color);
-        opacityExpression.push(0.3);
-        
-        APP.map.setPaintProperty('zones-france-fill', 'fill-color', colorExpression);
-        APP.map.setPaintProperty('zones-france-fill', 'fill-opacity', opacityExpression);
+        // Appliquer le filtre pour les zones sélectionnées
+        APP.map.setFilter('zones-france-selected', ['in', 'id', ...selectedIds]);
+        APP.map.setFilter('zones-france-selected-line', ['in', 'id', ...selectedIds]);
     }
 }
 
@@ -948,6 +1035,39 @@ function fitMapToGeometry(map, geometry) {
 }
 
 /**
+ * Limites de zoom selon le mode courant
+ */
+function getModeZoomLimits() {
+    try {
+        const isUSL = typeof isInUSLMode === 'function' ? isInUSLMode() : false;
+        const DEFAULT_MAX_ZOOM_USL = 16;
+        const DEFAULT_MAX_ZOOM_FR = 14;
+        const minZoom = isUSL
+            ? (CONFIG.ZONE_LIMITS?.mediaposte?.MIN_ZOOM_DISPLAY ?? 10)
+            : (CONFIG.ZONE_LIMITS?.[GLOBAL_STATE.currentZoneType]?.MIN_ZOOM_DISPLAY ?? 7);
+        const maxZoom = isUSL ? DEFAULT_MAX_ZOOM_USL : DEFAULT_MAX_ZOOM_FR;
+        return { minZoom, maxZoom };
+    } catch (_) {
+        return { minZoom: 7, maxZoom: 16 };
+    }
+}
+
+/**
+ * Incrémente le zoom de la carte avec contraintes et pas fixe
+ */
+function incrementZoom(step) {
+    if (!APP.map) return;
+    const { minZoom, maxZoom } = getModeZoomLimits();
+    const current = APP.map.getZoom();
+    let target = current + step;
+    if (target < minZoom) target = minZoom;
+    if (target > maxZoom) target = maxZoom;
+    if (target !== current) {
+        APP.map.setZoom(target);
+    }
+}
+
+/**
  * Masquer tous les layers non-USL
  */
 function hideNonUSLLayers() {
@@ -957,7 +1077,7 @@ function hideNonUSLLayers() {
     const franceLayers = [
         'zones-france-fill',
         'zones-france-line',
-        'zones-france-selected-fill',
+        'zones-france-selected',
         'zones-france-selected-line',
         'zones-france-superior-line'
     ];
@@ -984,6 +1104,47 @@ function hideNonUSLLayers() {
     console.log('[LAYERS] Layers non-USL masqués, layers USL visibles');
 }
 
+/**
+ * Fonction de débogage pour les zones supérieures
+ */
+function debugSuperiorZones() {
+    console.log('=== DEBUG ZONES SUPÉRIEURES ===');
+    console.log('Cache size:', GLOBAL_STATE.superiorZonesCache.size);
+    
+    // Vérifier la source
+    const source = APP.map.getSource('zones-france-superior');
+    if (source) {
+        console.log('Source zones-france-superior existe');
+        if (source._data) {
+            console.log('Nombre de features:', source._data.features.length);
+            if (source._data.features.length > 0) {
+                console.log('Première feature:', source._data.features[0]);
+            }
+        }
+    } else {
+        console.log('Source zones-france-superior n\'existe pas!');
+    }
+    
+    // Vérifier le layer
+    const layer = APP.map.getLayer('zones-france-superior-line');
+    if (layer) {
+        console.log('Layer zones-france-superior-line existe');
+        const visibility = APP.map.getLayoutProperty('zones-france-superior-line', 'visibility');
+        console.log('Visibility:', visibility || 'visible (par défaut)');
+        const paint = APP.map.getPaintProperty('zones-france-superior-line', 'line-color');
+        console.log('Line color:', paint);
+        const width = APP.map.getPaintProperty('zones-france-superior-line', 'line-width');
+        console.log('Line width:', width);
+        const opacity = APP.map.getPaintProperty('zones-france-superior-line', 'line-opacity');
+        console.log('Line opacity:', opacity);
+    } else {
+        console.log('Layer zones-france-superior-line n\'existe pas!');
+    }
+    
+    // Vérifier la valeur de CONFIG.COLORS.SUPERIOR_ZONE_OUTLINE
+    console.log('CONFIG.COLORS.SUPERIOR_ZONE_OUTLINE:', CONFIG.COLORS.SUPERIOR_ZONE_OUTLINE);
+}
+
 // ===== FONCTIONS GLOBALES EXPOSÉES =====
 window.initMap = initMap;
 window.updateMapWithAllCachedZones = updateMapWithAllCachedZones;
@@ -996,5 +1157,39 @@ window.createStoreMarker = createStoreMarker;
 window.hasValidAddress = hasValidAddress;
 window.fitMapToGeometry = fitMapToGeometry;
 window.hideNonUSLLayers = hideNonUSLLayers;
+window.debugSuperiorZones = debugSuperiorZones;
+
+/**
+ * Active ou désactive l'affichage des libellés sur la carte
+ * @param {boolean} show - true pour afficher, false pour masquer
+ */
+function toggleLabelsVisibility(show) {
+    console.log('[MAP] Toggle labels:', show);
+    
+    if (!APP.map) {
+        console.warn('[MAP] Carte non initialisée');
+        return;
+    }
+    
+    // Layers de libellés à modifier
+    const labelLayers = [
+        'zones-usl-label',
+        'zones-france-label',
+        'zones-france-superior-label'
+    ];
+    
+    labelLayers.forEach(layerId => {
+        if (APP.map.getLayer(layerId)) {
+            APP.map.setLayoutProperty(
+                layerId,
+                'visibility',
+                show ? 'visible' : 'none'
+            );
+        }
+    });
+}
+
+// Exporter la fonction
+window.toggleLabelsVisibility = toggleLabelsVisibility;
 
 console.log('✅ Module MAP-MANAGER Tract V2 chargé');

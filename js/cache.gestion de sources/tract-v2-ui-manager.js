@@ -7,7 +7,8 @@
  */
 function updateValidateButton() {
     const validateBtn = document.getElementById('validate-selection-btn');
-    if (!validateBtn) return;
+    const validateContainer = document.getElementById('validate-container');
+    if (!validateBtn || !validateContainer) return;
     
     // Afficher le bouton seulement si :
     // 1. Mode non-USL ET
@@ -16,10 +17,24 @@ function updateValidateButton() {
                       (GLOBAL_STATE.tempSelection.size > 0 || GLOBAL_STATE.tempSelectedCount > 0);
     
     if (shouldShow) {
-        validateBtn.classList.remove('hidden');
+        validateContainer.classList.remove('hidden');
         validateBtn.textContent = `✓ Valider la sélection (${GLOBAL_STATE.tempSelection.size} zones)`;
     } else {
-        validateBtn.classList.add('hidden');
+        validateContainer.classList.add('hidden');
+    }
+}
+
+/**
+ * Met à jour la visibilité de la barre d'outils (Cercle/Isochrone/Polygone)
+ * Visible uniquement en mode USL
+ */
+function updateToolbarVisibility() {
+    const toolbar = document.getElementById('toolbar');
+    if (!toolbar || typeof isInUSLMode !== 'function') return;
+    if (isInUSLMode()) {
+        toolbar.classList.remove('hidden');
+    } else {
+        toolbar.classList.add('hidden');
     }
 }
 
@@ -158,6 +173,23 @@ function handleZoneTypeChange(event) {
     GLOBAL_STATE.lastZoneType = oldType;
     
     GLOBAL_STATE.currentZoneType = newType;
+    // Mettre à jour la visibilité de la barre d'outils selon le mode
+    if (typeof updateToolbarVisibility === 'function') {
+        updateToolbarVisibility();
+    }
+    // Appliquer le zoom par défaut pour le nouveau type (animation courte)
+    try {
+        if (window.APP && APP.map && typeof getCurrentZoneLimits === 'function') {
+            const limits = getCurrentZoneLimits();
+            if (limits && typeof limits.DEFAULT_ZOOM_ON_CHANGE === 'number') {
+                const newZoom = limits.DEFAULT_ZOOM_ON_CHANGE;
+                console.log(`[UI] Application du zoom par défaut pour ${newType}:`, newZoom);
+                APP.map.easeTo({ zoom: newZoom, duration: 500 });
+            }
+        }
+    } catch (e) {
+        console.warn('[UI] Impossible d\'appliquer le zoom par défaut:', e);
+    }
     
     // Si on vient d'une conversion ET qu'on passe en mode USL, ne pas recharger
     if (window.isConversionInProgress && newType === 'mediaposte') {
@@ -264,14 +296,63 @@ function updateSelectionDisplay() {
         foyersInfo.style.display = showFoyers && GLOBAL_STATE.totalSelectedFoyers > 0 ? 'inline' : 'none';
     }
     
+    // Gérer la visibilité du compteur
     if (count > 0) {
-        counter.classList.remove('hidden');
+        counter.classList.add('active');
     } else {
-        counter.classList.add('hidden');
+        counter.classList.remove('active');
     }
     
     // Mettre à jour le bouton de validation
     updateValidateButton();
+    // Mettre à jour la visibilité des actions flottantes
+    if (typeof updateActionButtonsVisibility === 'function') {
+        updateActionButtonsVisibility();
+    }
+}
+
+/**
+ * Met à jour la visibilité des boutons d'action (reset / recentrer)
+ */
+function updateActionButtonsVisibility() {
+    const resetBtn = document.getElementById('reset-btn');
+    const recenterSelectionBtn = document.getElementById('recenter-selection-btn');
+    const recenterStoreBtn = document.getElementById('recenter-store-btn');
+    if (!resetBtn || !recenterSelectionBtn || !recenterStoreBtn || !window.APP || !APP.map) return;
+    
+    const hasUSLSelected = GLOBAL_STATE.finalUSLSelection && GLOBAL_STATE.finalUSLSelection.size > 0;
+    const hasTempSelected = GLOBAL_STATE.tempSelection && GLOBAL_STATE.tempSelection.size > 0;
+    
+    // 1) Reset: visible uniquement si au moins une USL est sélectionnée
+    if (hasUSLSelected) resetBtn.classList.remove('hidden'); else resetBtn.classList.add('hidden');
+    
+    // 2) Recentrer sélection: visible si sélection (USL ou temp) ET hors viewport
+    let selectionOutOfView = false;
+    const selectionBounds = (typeof calculateSelectionBounds === 'function') ? calculateSelectionBounds() : null;
+    if (selectionBounds && (hasUSLSelected || hasTempSelected)) {
+        const mapBounds = APP.map.getBounds();
+        // Si une partie de la sélection est hors du viewport
+        if (selectionBounds.lat_min < mapBounds.getSouth() ||
+            selectionBounds.lat_max > mapBounds.getNorth() ||
+            selectionBounds.lng_min < mapBounds.getWest()  ||
+            selectionBounds.lng_max > mapBounds.getEast()) {
+            selectionOutOfView = true;
+        }
+    }
+    if (selectionOutOfView) recenterSelectionBtn.classList.remove('hidden'); else recenterSelectionBtn.classList.add('hidden');
+    
+    // 3) Recentrer point de vente: visible si store existe et hors viewport
+    let storeOutOfView = false;
+    if (GLOBAL_STATE.storeLocation && Array.isArray(GLOBAL_STATE.storeLocation)) {
+        const center = APP.map.getCenter();
+        const mapBounds = APP.map.getBounds();
+        const [lng, lat] = GLOBAL_STATE.storeLocation;
+        // point hors viewport si en dehors des bounds
+        if (lat < mapBounds.getSouth() || lat > mapBounds.getNorth() || lng < mapBounds.getWest() || lng > mapBounds.getEast()) {
+            storeOutOfView = true;
+        }
+    }
+    if (storeOutOfView) recenterStoreBtn.classList.remove('hidden'); else recenterStoreBtn.classList.add('hidden');
 }
 
 // ===== GESTION DES POPUPS OUTILS =====
@@ -296,11 +377,12 @@ function updateCircleRadiusDisplay() {
  * Récupération des paramètres isochrone
  */
 function getIsochroneParams() {
-    const transportSelect = document.getElementById('transport-mode');
+    // Récupérer le mode de transport sélectionné
+    const transportRadio = document.querySelector('input[name="transport-mode"]:checked');
     const timeSlider = document.getElementById('time-range');
     
     return {
-        transport: transportSelect ? transportSelect.value : 'driving',
+        transport: transportRadio ? transportRadio.value : 'driving',
         time: timeSlider ? parseInt(timeSlider.value) : 10
     };
 }
@@ -419,6 +501,8 @@ window.showStatus = showStatus;
 window.showEstimation = showEstimation;
 window.hideEstimation = hideEstimation;
 window.updateSelectionDisplay = updateSelectionDisplay;
+window.updateActionButtonsVisibility = updateActionButtonsVisibility;
+window.updateToolbarVisibility = updateToolbarVisibility;
 window.updateCircleRadiusDisplay = updateCircleRadiusDisplay;
 window.getIsochroneParams = getIsochroneParams;
 window.switchImportTab = switchImportTab;
@@ -426,5 +510,109 @@ window.startDrag = startDrag;
 window.closePopup = closePopup;
 window.clearFinalSelection = clearFinalSelection;
 window.clearTempSelection = clearTempSelection;
+
+/**
+ * Gère le changement d'état du switch des libellés
+ * @param {Event} event - L'événement de changement
+ */
+function handleLabelsSwitchChange(event) {
+    const showLabels = event.target.checked;
+    console.log('[UI] Switch libellés:', showLabels ? 'ON' : 'OFF');
+    
+    // Appliquer le changement sur la carte
+    if (window.toggleLabelsVisibility) {
+        window.toggleLabelsVisibility(showLabels);
+    }
+    
+    // Sauvegarder la préférence
+    localStorage.setItem('tract-v2-show-labels', showLabels);
+}
+
+/**
+ * Réinitialise toutes les sélections
+ */
+function resetSelection() {
+    console.log('[UI] Reset selection demandé');
+    
+    // Ouvrir la popup de confirmation
+    const popup = document.getElementById('popup-reset-confirm');
+    if (popup) {
+        popup.classList.add('active');
+        
+        // Position par défaut
+        if (!popup.style.left || popup.style.left === 'auto') {
+            popup.style.left = '180px';
+            popup.style.top = '100px';
+            popup.style.transform = 'none';
+            popup.style.right = 'auto';
+        }
+        
+        // Ajuster la position si elle sort de l'écran
+        setTimeout(() => {
+            const rect = popup.getBoundingClientRect();
+            const appContainer = document.getElementById('app') || document.getElementById('map-container');
+            
+            if (appContainer) {
+                const containerRect = appContainer.getBoundingClientRect();
+                
+                // Vérifier si la popup sort à droite
+                if (rect.right > containerRect.right) {
+                    popup.style.left = 'auto';
+                    popup.style.right = '20px';
+                }
+                
+                // Vérifier si la popup sort en bas
+                if (rect.bottom > containerRect.bottom) {
+                    popup.style.top = (containerRect.height - rect.height - 20) + 'px';
+                }
+            }
+        }, 10);
+    }
+}
+
+/**
+ * Confirme la réinitialisation (appelée depuis la popup)
+ */
+function confirmReset() {
+    console.log('[UI] Réinitialisation confirmée');
+    
+    // Fermer la popup
+    closePopup('reset-confirm');
+    
+    // Effacer les sélections
+    if (window.clearFinalSelection) {
+        window.clearFinalSelection();
+    }
+    if (window.clearTempSelection) {
+        window.clearTempSelection();
+    }
+    
+    // Mettre à jour l'affichage
+    if (window.updateSelectionDisplay) {
+        window.updateSelectionDisplay();
+    }
+    
+    // Afficher un message de confirmation
+    if (window.showStatus) {
+        window.showStatus('Sélection réinitialisée', 'success');
+    }
+}
+
+/**
+ * Ouvre le popup de modification d'adresse
+ */
+function openAddressPopup() {
+    console.log('[UI] Ouverture popup adresse');
+    // Cette fonction sera implémentée dans la phase 5 (popups)
+    if (window.showStatus) {
+        window.showStatus('Fonctionnalité en cours de développement', 'info');
+    }
+}
+
+// Exporter les fonctions
+window.handleLabelsSwitchChange = handleLabelsSwitchChange;
+window.resetSelection = resetSelection;
+window.confirmReset = confirmReset;
+window.openAddressPopup = openAddressPopup;
 
 console.log('✅ Module UI-MANAGER Tract V2 chargé');
