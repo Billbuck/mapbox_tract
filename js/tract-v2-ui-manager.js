@@ -43,9 +43,22 @@ function updateToolbarVisibility() {
  */
 async function validateTempSelection() {
     console.log('[VALIDATION] Début validation sélection temporaire');
+    if (window.isConversionInProgress) {
+        console.log('[VALIDATION] Ignoré: conversion déjà en cours');
+        return;
+    }
+    if (window.isValidationInProgress) {
+        console.log('[VALIDATION] Ignoré: validation déjà en cours');
+        return;
+    }
+    window.isValidationInProgress = true;
+    const validateBtn = document.getElementById('validate-selection-btn');
+    if (validateBtn) { validateBtn.disabled = true; }
     
     if (GLOBAL_STATE.tempSelection.size === 0) {
         showStatus('Aucune zone sélectionnée', 'error');
+        window.isValidationInProgress = false;
+        if (validateBtn) { validateBtn.disabled = false; }
         return;
     }
     
@@ -55,6 +68,8 @@ async function validateTempSelection() {
     
     if (!selectionBounds) {
         showStatus('Erreur calcul zone sélectionnée', 'error');
+        window.isValidationInProgress = false;
+        if (validateBtn) { validateBtn.disabled = false; }
         return;
     }
     
@@ -75,6 +90,7 @@ async function validateTempSelection() {
     });
     
     // Vérifier si les USL sont chargées pour cette zone
+    console.log('[NOUVEAU FLUX] Validation sans préchargement USL');
     if (!areUSLLoadedForBounds(selectionBounds)) {
         console.log('[VALIDATION] USL manquantes détectées, chargement nécessaire');
         console.log('[VALIDATION] Bounds chargées actuelles:', GLOBAL_STATE.loadedBounds);
@@ -84,7 +100,10 @@ async function validateTempSelection() {
         
         try {
             // Charger les USL manquantes
+            console.log('[NOUVEAU FLUX] Chargement USL à la demande pour bounds:', selectionBounds);
+            console.log('[NOUVEAU FLUX] Taille du cache USL avant:', GLOBAL_STATE.uslCache.size);
             const newUSLCount = await loadUSLForSpecificBounds(selectionBounds);
+            console.log('[NOUVEAU FLUX] Taille du cache USL après:', GLOBAL_STATE.uslCache.size);
             
             if (newUSLCount > 0) {
                 showStatus(`${newUSLCount} USL supplémentaires chargées`, 'info');
@@ -100,6 +119,8 @@ async function validateTempSelection() {
         } catch (error) {
             console.error('[VALIDATION] Erreur chargement USL:', error);
             showStatus('Erreur lors du chargement des USL', 'error');
+            window.isValidationInProgress = false;
+            if (validateBtn) { validateBtn.disabled = false; }
             return;
         }
     } else {
@@ -112,6 +133,9 @@ async function validateTempSelection() {
     // Lancer la conversion
     showStatus('Conversion en cours...', 'warning');
     convertTempSelectionToUSL();
+    // Déverrouiller immédiatement après le déclenchement de conversion
+    window.isValidationInProgress = false;
+    if (validateBtn) { validateBtn.disabled = false; }
     
     // Après conversion, basculer automatiquement en mode USL
     setTimeout(() => {
@@ -176,6 +200,16 @@ function handleZoneTypeChange(event) {
     // Mettre à jour la visibilité de la barre d'outils selon le mode
     if (typeof updateToolbarVisibility === 'function') {
         updateToolbarVisibility();
+    }
+    // Vider le cache USL quand on passe en mode France (nouveau flux) et purger les bounds USL
+    if (newType !== 'mediaposte') {
+        if (GLOBAL_STATE.uslCache && GLOBAL_STATE.uslCache.size > 0) {
+            GLOBAL_STATE.uslCache.clear();
+            console.log('[NOUVEAU FLUX] Cache USL vidé en mode France');
+        }
+        // Purger aussi les bounds USL enregistrées
+        GLOBAL_STATE.loadedBounds = GLOBAL_STATE.loadedBounds.filter(b => b.type !== 'mediaposte');
+        console.log('[NOUVEAU FLUX] Bounds USL purgées en mode France');
     }
     // Appliquer le zoom par défaut pour le nouveau type (animation courte)
     try {
@@ -259,7 +293,7 @@ function hideEstimation() {
 /**
  * Mise à jour de l'affichage de la sélection
  */
-function updateSelectionDisplay() {
+function updateSelectionDisplay(skipWebDevUpdate = false) {
     const counter = document.getElementById('selection-counter');
     const countElement = document.getElementById('selection-count');
     const labelElement = document.getElementById('selection-label');
@@ -573,24 +607,18 @@ function resetSelection() {
 /**
  * Confirme la réinitialisation (appelée depuis la popup)
  */
-function confirmReset() {
+function confirmReset(skipWebDevUpdate = true) {
     console.log('[UI] Réinitialisation confirmée');
     
     // Fermer la popup
     closePopup('reset-confirm');
     
     // Effacer les sélections
-    if (window.clearFinalSelection) {
-        window.clearFinalSelection();
-    }
-    if (window.clearTempSelection) {
-        window.clearTempSelection();
-    }
+    if (window.clearFinalSelection) { window.clearFinalSelection(); }
+    if (window.clearTempSelection) { window.clearTempSelection(); }
     
     // Mettre à jour l'affichage
-    if (window.updateSelectionDisplay) {
-        window.updateSelectionDisplay();
-    }
+    if (window.updateSelectionDisplay) { window.updateSelectionDisplay(skipWebDevUpdate); }
     
     // Afficher un message de confirmation
     if (window.showStatus) {

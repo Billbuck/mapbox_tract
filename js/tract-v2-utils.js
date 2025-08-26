@@ -502,8 +502,14 @@ function areUSLLoadedForBounds(selectionBounds) {
         return isUSL && coversSelection;
     });
     
-    console.log('[BOUNDS-CHECK] Résultat:', result ? 'COUVERT' : 'NON COUVERT');
-    return result;
+    // Sécurité: si couvert mais cache USL vide, considérer NON COUVERT pour forcer le chargement USL
+    const hasUSLInCache = GLOBAL_STATE.uslCache && GLOBAL_STATE.uslCache.size > 0;
+    const finalResult = result && hasUSLInCache;
+    if (result && !hasUSLInCache) {
+        console.log('[BOUNDS-CHECK] Couvert mais cache USL vide -> forcer rechargement');
+    }
+    console.log('[BOUNDS-CHECK] Résultat:', finalResult ? 'COUVERT' : 'NON COUVERT');
+    return finalResult;
 }
 
 /**

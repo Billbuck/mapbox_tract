@@ -227,7 +227,8 @@ function convertTempSelectionToUSL() {
             // Afficher la progression avec les stats
             const progress = Math.round((processedCount / uslZonesToProcess.length) * 100);
             const elapsed = Math.round((performance.now() - startTime) / 1000);
-            const rate = Math.round(processedCount / elapsed);
+            const safeElapsed = Math.max(elapsed, 1); // éviter division par 0
+            const rate = Math.round(processedCount / safeElapsed);
             showStatus(`Conversion... ${progress}% (${rate} USL/s, ${skippedCount + filteredOutCount} ignorées)`, 'warning');
             
             // Utiliser requestAnimationFrame pour ne pas bloquer l'UI

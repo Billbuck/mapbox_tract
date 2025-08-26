@@ -385,17 +385,49 @@ async function loadStudy(studyData) {
             GLOBAL_STATE.currentZoneType = 'mediaposte';
         }
         
-        // 6. Centrer la carte
-        APP.map.flyTo({
-            center: GLOBAL_STATE.storeLocation,
-            zoom: 14,
-            duration: 2000
-        });
-        
-        // 7. Attendre stabilisation puis charger les zones
-        await new Promise(resolve => setTimeout(resolve, 2500));
-        await loadZonesForCurrentView(true);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // NOUVEAU: Détection étude sauvegardée avec USL
+        const hasSavedSelection = !!(studyData.selection && Array.isArray(studyData.selection.tabUsl) && studyData.selection.tabUsl.length > 0);
+        if (hasSavedSelection) {
+            console.log('[LOAD-STUDY] Étude sauvegardée détectée');
+            console.log('[LOAD-STUDY] USL à charger:', studyData.selection.tabUsl.length);
+            console.log('[LOAD-STUDY] Recentrage sur sélection au lieu du point de vente');
+            
+            // 6A. Charger des USL en arrière-plan autour du point de vente (zone élargie)
+            try {
+                const [lng, lat] = GLOBAL_STATE.storeLocation;
+                const latMargin = 0.25;  // ~27 km
+                const lngMargin = 0.35;  // ~25 km à cette latitude
+                const preloadBounds = {
+                    lat_min: lat - latMargin,
+                    lat_max: lat + latMargin,
+                    lng_min: lng - lngMargin,
+                    lng_max: lng + lngMargin
+                };
+                if (typeof window.loadUSLForSpecificBounds === 'function') {
+                    await window.loadUSLForSpecificBounds(preloadBounds);
+                } else if (typeof loadUSLForSpecificBounds === 'function') {
+                    await loadUSLForSpecificBounds(preloadBounds);
+                }
+            } catch (e) {
+                console.warn('[LOAD-STUDY] Préchargement USL autour du point de vente impossible:', e);
+            }
+            
+            // 6B. Charger les zones pour la vue courante (complément)
+            await loadZonesForCurrentView(true);
+            
+            // 7A. Petite attente pour stabiliser
+            await new Promise(resolve => setTimeout(resolve, 500));
+        } else {
+            // EXISTANT: Étude sans sélection, zoom sur le point de vente
+            APP.map.flyTo({
+                center: GLOBAL_STATE.storeLocation,
+                zoom: 14,
+                duration: 2000
+            });
+            await new Promise(resolve => setTimeout(resolve, 2500));
+            await loadZonesForCurrentView(true);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
         
         // 8. Restaurer la sélection USL
         let restoredCount = 0;
@@ -408,6 +440,19 @@ async function loadStudy(studyData) {
                 restoredCount++;
             }
         });
+        
+        // NOUVEAU: si sélection restaurée, recadrer sur l'ensemble des USL sélectionnées
+        if (hasSavedSelection && restoredCount > 0) {
+            try {
+                if (typeof window.recenterOnSelection === 'function') {
+                    window.recenterOnSelection(60);
+                } else if (typeof recenterOnSelection === 'function') {
+                    recenterOnSelection(60);
+                }
+            } catch (e) {
+                console.warn('[LOAD-STUDY] Recentrage sur sélection impossible:', e);
+            }
+        }
         
         // 9. Mettre à jour l'affichage
         updateSelectionDisplay();
@@ -630,11 +675,13 @@ function watchSelectionChanges() {
 
 // Surcharger updateSelectionDisplay pour ajouter la mise à jour WebDev
 const originalUpdateSelectionDisplay = window.updateSelectionDisplay;
-window.updateSelectionDisplay = function() {
+window.updateSelectionDisplay = function(skipWebDevUpdate = false) {
     if (originalUpdateSelectionDisplay) {
-        originalUpdateSelectionDisplay();
+        originalUpdateSelectionDisplay(skipWebDevUpdate);
     }
-    watchSelectionChanges();
+    if (!skipWebDevUpdate) {
+        watchSelectionChanges();
+    }
 };
 
 // ===== FONCTIONS GLOBALES EXPOSÉES =====

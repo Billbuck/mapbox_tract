@@ -328,8 +328,12 @@ function clearCacheForTypeChange() {
         GLOBAL_STATE.superiorZonesCache.clear();
     }
     
-    // Garder seulement les bounds USL
-    GLOBAL_STATE.loadedBounds = GLOBAL_STATE.loadedBounds.filter(b => b.type === 'mediaposte');
+    // Garder seulement les bounds pertinentes pour le type courant
+    if (GLOBAL_STATE.currentZoneType === 'mediaposte') {
+        GLOBAL_STATE.loadedBounds = GLOBAL_STATE.loadedBounds.filter(b => b.type === 'mediaposte');
+    } else {
+        GLOBAL_STATE.loadedBounds = GLOBAL_STATE.loadedBounds.filter(b => b.type !== 'mediaposte');
+    }
     
     // Nettoyer l'état de conversion
     clearConversionState();
@@ -493,8 +497,9 @@ function validateCoordinate(coord) {
  * Déterminer si on doit charger les USL en arrière-plan
  */
 function shouldLoadUSLInBackground() {
-    // TOUJOURS charger USL en background si on n'est pas en mode USL
-    return !isInUSLMode();
+    // DÉSACTIVÉ : On ne précharge plus les USL en arrière-plan
+    // Les USL seront chargées uniquement lors de la validation
+    return false;
 }
 
 /**
