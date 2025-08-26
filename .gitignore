@@ -1,0 +1,5 @@
+# Fichiers WebDev à ignorer
+cache.gestion de sources/
+*.GdsInfo
+*.bak
+.vscode/
