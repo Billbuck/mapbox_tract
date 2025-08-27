@@ -216,9 +216,18 @@
                 </div>
                 <div class="range-control">
                     <label>Temps de trajet :</label>
-                    <input type="range" id="time-range" min="1" max="60" value="10" step="1"
-                           oninput="updateTimePreview()">
-                    <div class="range-value" id="time-display">10 minutes</div>
+                    <div class="time-control">
+                        <div class="time-buttons">
+                            <button class="zoom-btn" onclick="decrementIsochroneTime(); return false;">
+                                <span class="icon-container icon-30 icon-zoom-moins"></span>
+                            </button>
+                            <button class="zoom-btn" onclick="incrementIsochroneTime(); return false;">
+                                <span class="icon-container icon-30 icon-zoom-plus"></span>
+                            </button>
+                        </div>
+                        <div class="range-value" id="time-display">10 minutes</div>
+                    </div>
+                    <input type="hidden" id="time-range" value="10">
                 </div>
                 <div class="estimation-box" id="isochrone-estimation" style="display: none;">
                     Estimation : <strong id="isochrone-estimation-value">0 zones</strong>

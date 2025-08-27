@@ -171,6 +171,16 @@ function setupMapEvents() {
             zoneType: GLOBAL_STATE.currentZoneType,
             hasValidAddress: hasValidAddress()
         });
+        // Si un recentrage programmatique Isochrone est en cours, ne déclenche pas de chargement
+        if (window.GLOBAL_STATE && GLOBAL_STATE.suppressMoveLoad === true) {
+            console.log('[MOVE-DEBUG] moveend issu d\'un recentrage isochrone -> skip chargement');
+            GLOBAL_STATE.suppressMoveLoad = false;
+            // Mettre à jour la visibilité des boutons mais éviter tout autre traitement
+            if (typeof updateActionButtonsVisibility === 'function') {
+                updateActionButtonsVisibility();
+            }
+            return;
+        }
         
         // Chargement zones sans délai
         if (hasValidAddress()) {

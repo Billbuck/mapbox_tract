@@ -1,6 +1,10 @@
 // ===== OUTILS SÉLECTION TRACT V2 =====
 
 // ===== GESTION DES OUTILS =====
+// Utilitaires logs horodatés et contrôle de concurrence pour isochrone
+function isoTs() { return new Date().toISOString(); }
+let currentIsochroneRequestId = 0;
+let currentIsochroneAbortController = null;
 
 /**
  * Changement d'outil de sélection
@@ -87,7 +91,31 @@ function performToolSwitch(tool) {
     
     // Affichage automatique de l'isochrone si outil isochrone et adresse valide
     if (tool === 'isochrone' && GLOBAL_STATE.storeLocation) {
-        updateIsochronePreview();
+        (async () => {
+            await updateIsochronePreview();
+            try {
+                if (GLOBAL_STATE.isochroneData) {
+                    const bbox = turf.bbox(GLOBAL_STATE.isochroneData);
+                    const padding = { top: 100, bottom: 100, left: 300, right: 100 };
+                    if (APP.map && typeof APP.map.cameraForBounds === 'function') {
+                        const camera = APP.map.cameraForBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding });
+                        if (camera && camera.center) {
+                            const rawZoom = typeof camera.zoom === 'number' ? camera.zoom : APP.map.getZoom();
+                            const steppedZoom = Math.round(rawZoom / 0.25) * 0.25;
+                            if (APP.map && typeof APP.map.isMoving === 'function' && APP.map.isMoving()) {
+                                try { APP.map.stop(); console.log(`[ISOCHRONE ${isoTs()}] Stop animation précédente avant recentrage (activation outil)`); } catch(_) {}
+                            }
+                            // Saut instantané pour éviter un zoom intermédiaire non-steppé
+                            APP.map.jumpTo({ center: camera.center, zoom: steppedZoom });
+                        } else {
+                            APP.map.fitBounds(bbox, { padding, duration: 800 });
+                        }
+                    } else {
+                        APP.map.fitBounds(bbox, { padding, duration: 800 });
+                    }
+                }
+            } catch (_) {}
+        })();
     }
     
     console.log(`Outil activé: ${tool}`);
@@ -124,7 +152,7 @@ function activateTool(tool) {
     if (popup) {
         // Position par défaut comme dans Zecible
         if (!popup.style.left || popup.style.left === 'auto') {
-            popup.style.left = (tool === 'circle' ? '100px' : '180px');
+            popup.style.left = ((tool === 'circle' || tool === 'isochrone') ? '100px' : '180px');
             popup.style.top = '100px';
             popup.style.transform = 'none';
             popup.style.right = 'auto';
@@ -229,7 +257,16 @@ async function updateIsochronePreview() {
     if (!GLOBAL_STATE.storeLocation || GLOBAL_STATE.currentTool !== 'isochrone') {
         return;
     }
-    
+    const startedAt = isoTs();
+    const requestId = ++currentIsochroneRequestId;
+    console.log(`[ISOCHRONE ${startedAt}] Début updateIsochronePreview req#${requestId}`);
+
+    // Annuler une requête précédente si encore en vol
+    if (currentIsochroneAbortController) {
+        try { currentIsochroneAbortController.abort(); } catch(_) {}
+    }
+    currentIsochroneAbortController = new AbortController();
+
     showStatus('Calcul de l\'isochrone...', 'warning');
     
     try {
@@ -238,15 +275,47 @@ async function updateIsochronePreview() {
                        params.transport === 'cycling' ? 'cycling' : 'walking';
         
         const url = `https://api.mapbox.com/isochrone/v1/mapbox/${profile}/${GLOBAL_STATE.storeLocation[0]},${GLOBAL_STATE.storeLocation[1]}?contours_minutes=${params.time}&polygons=true&access_token=${CONFIG.MAPBOX_TOKEN}`;
-        
-        const response = await fetch(url);
+        console.log(`[ISOCHRONE ${isoTs()}] req#${requestId} FETCH ${url}`);
+        const response = await fetch(url, { signal: currentIsochroneAbortController.signal });
         const data = await response.json();
+        console.log(`[ISOCHRONE ${isoTs()}] req#${requestId} Réponse reçue (status: ${response.status})`);
+
+        // Si une nouvelle requête a été lancée depuis, ignorer cette réponse
+        if (requestId !== currentIsochroneRequestId) {
+            console.log(`[ISOCHRONE ${isoTs()}] req#${requestId} Ignorée (supplantée par req#${currentIsochroneRequestId})`);
+            return;
+        }
         
         if (data.features && data.features.length > 0) {
             GLOBAL_STATE.isochroneData = data.features[0];
             showIsochroneOnMap();
             
-            fitMapToGeometry(APP.map, GLOBAL_STATE.isochroneData);
+            // Recentrage avec padding asymétrique et zoom pas 0,25
+            try {
+                const bbox = turf.bbox(GLOBAL_STATE.isochroneData);
+                const padding = { top: 100, bottom: 100, left: 300, right: 100 };
+                if (APP.map && typeof APP.map.cameraForBounds === 'function') {
+                    const camera = APP.map.cameraForBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding });
+                    if (camera && camera.center) {
+                        const rawZoom = typeof camera.zoom === 'number' ? camera.zoom : APP.map.getZoom();
+                        const steppedZoom = Math.round(rawZoom / 0.25) * 0.25;
+                        console.log(`[ISOCHRONE ${isoTs()}] req#${requestId} Recentre + zoom ${steppedZoom}`);
+                        if (APP.map && typeof APP.map.isMoving === 'function' && APP.map.isMoving()) {
+                            try { APP.map.stop(); console.log(`[ISOCHRONE ${isoTs()}] req#${requestId} Stop animation précédente avant recentrage`); } catch(_) {}
+                        }
+                        // Supprimer l'auto-chargement déclenché par moveend pour ce recentrage
+                        if (window.GLOBAL_STATE) { GLOBAL_STATE.suppressMoveLoad = true; }
+                        // Saut instantané pour éviter un zoom intermédiaire non-steppé
+                        APP.map.jumpTo({ center: camera.center, zoom: steppedZoom });
+                    } else {
+                        APP.map.fitBounds(bbox, { padding, duration: 600 });
+                    }
+                } else {
+                    APP.map.fitBounds(bbox, { padding, duration: 600 });
+                }
+            } catch (_) {
+                fitMapToGeometry(APP.map, GLOBAL_STATE.isochroneData);
+            }
             debouncedPrecount(GLOBAL_STATE.isochroneData);
             
             showStatus('Isochrone calculée', 'success');
@@ -255,8 +324,16 @@ async function updateIsochronePreview() {
         }
         
     } catch (error) {
+        if (error && error.name === 'AbortError') {
+            console.log(`[ISOCHRONE ${isoTs()}] req#${requestId} Abandonnée (Abort)`);
+            return;
+        }
         showStatus('Erreur lors du calcul de l\'isochrone', 'error');
-        console.error(error);
+        console.error('[ISOCHRONE ERROR]', error);
+    } finally {
+        if (requestId === currentIsochroneRequestId) {
+            currentIsochroneAbortController = null;
+        }
     }
 }
 
@@ -264,37 +341,48 @@ async function updateIsochronePreview() {
  * Mise à jour de l'affichage du temps
  */
 function updateTimePreview() {
-    const timeSlider = document.getElementById('time-range');
-    let value = parseInt(timeSlider.value);
-    
-    // Gestion du pas dynamique
-    if (value > 15 && value < 20) {
-        const previousValue = parseInt(timeSlider.getAttribute('data-previous-value') || '10');
-        if (previousValue <= 15) {
-            value = 20;
-        } else {
-            value = 15;
-        }
-        timeSlider.value = value;
-    }
-    
-    if (value > 20 && value % 5 !== 0) {
-        value = Math.round(value / 5) * 5;
-        timeSlider.value = value;
-    }
-    
-    timeSlider.setAttribute('data-previous-value', value);
-    
-    if (value <= 15) {
-        timeSlider.step = '1';
-    } else {
-        timeSlider.step = '5';
-    }
-    
+    const timeInput = document.getElementById('time-range');
+    let value = parseInt(timeInput.value);
+    value = Math.max(1, Math.min(60, value));
+    timeInput.value = value;
     document.getElementById('time-display').textContent = value + ' minutes';
-    
-    // Mettre à jour l'isochrone
-    updateIsochronePreview();
+    // Calcul lancé via debounce
+}
+
+let isochroneUpdateTimeout = null;
+function scheduleIsochroneUpdate() {
+    const timeInput = document.getElementById('time-range');
+    const value = Math.max(1, Math.min(60, parseInt(timeInput.value) || 10));
+    timeInput.value = value;
+    document.getElementById('time-display').textContent = value + ' minutes';
+    if (isochroneUpdateTimeout) {
+        clearTimeout(isochroneUpdateTimeout);
+        console.log(`[ISOCHRONE ${isoTs()}] Debounce reset, prochaine exécution dans 350ms (val=${value})`);
+    } else {
+        console.log(`[ISOCHRONE ${isoTs()}] Debounce planifié dans 350ms (val=${value})`);
+    }
+    isochroneUpdateTimeout = setTimeout(() => {
+        console.log(`[ISOCHRONE ${isoTs()}] Debounce déclenché -> calcul`);
+        updateIsochronePreview();
+        isochroneUpdateTimeout = null;
+    }, 350);
+}
+
+function incrementIsochroneTime() { 
+    const t=document.getElementById('time-range'); 
+    const before = parseInt(t.value)||10; 
+    const after = Math.min(60,before+1);
+    console.log(`[ISOCHRONE ${isoTs()}] Clic + (avant=${before} -> après=${after})`);
+    t.value = after; 
+    scheduleIsochroneUpdate(); 
+}
+function decrementIsochroneTime() { 
+    const t=document.getElementById('time-range'); 
+    const before = parseInt(t.value)||10; 
+    const after = Math.max(1,before-1);
+    console.log(`[ISOCHRONE ${isoTs()}] Clic - (avant=${before} -> après=${after})`);
+    t.value = after; 
+    scheduleIsochroneUpdate(); 
 }
 
 /**
@@ -313,6 +401,9 @@ function validateIsochroneSelection() {
         performToolSwitch('manual');
         if (window.closePopup) {
             closePopup('isochrone');
+        }
+        if (typeof window.recenterOnSelection === 'function') {
+            try { window.recenterOnSelection(60); } catch (_) {}
         }
     }, 500);
 }
