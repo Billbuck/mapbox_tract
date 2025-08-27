@@ -1,0 +1,11 @@
+{
+  "defaultSeverity": "warning",
+  "rules": {
+    "block-no-empty": true,
+    "color-no-invalid-hex": true,
+    "no-extra-semicolons": true,
+    "string-no-newline": true
+  }
+}
+
+

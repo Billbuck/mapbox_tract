@@ -1,0 +1,16 @@
+{
+  "name": "tract-v2",
+  "private": true,
+  "devDependencies": {
+    "stylelint": "^16.0.0",
+    "stylelint-config-standard": "^36.0.0"
+  },
+  "stylelint": {
+    "extends": ["stylelint-config-standard"]
+  },
+  "scripts": {
+    "lint:css": "stylelint \"css/**/*.css\""
+  }
+}
+
+
