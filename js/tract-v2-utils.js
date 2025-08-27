@@ -438,10 +438,21 @@ function recenterOnSelection(padding = 60) {
             return;
         }
         const bbox = [bounds.lng_min, bounds.lat_min, bounds.lng_max, bounds.lat_max];
-        APP.map.fitBounds(bbox, {
-            padding: { top: padding, bottom: padding, left: padding, right: padding },
-            duration: 1000
-        });
+        // Calculer la caméra cible puis quantifier le zoom par pas de 0,25 pour une expérience cohérente
+        if (typeof APP.map.cameraForBounds === 'function') {
+            const camera = APP.map.cameraForBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], {
+                padding: { top: padding, bottom: padding, left: padding, right: padding }
+            });
+            const rawZoom = camera && typeof camera.zoom === 'number' ? camera.zoom : APP.map.getZoom();
+            const steppedZoom = Math.round(rawZoom / 0.25) * 0.25;
+            APP.map.easeTo({ center: camera.center, zoom: steppedZoom, duration: 1000 });
+        } else {
+            // Fallback si cameraForBounds n'est pas disponible
+            APP.map.fitBounds(bbox, {
+                padding: { top: padding, bottom: padding, left: padding, right: padding },
+                duration: 1000
+            });
+        }
     } catch (e) {
         console.warn('[RECENTER] Erreur recentrage:', e);
     }

@@ -60,7 +60,27 @@ function performToolSwitch(tool) {
         const circleGeoJSON = showCircleOnMap();
         
         if (circleGeoJSON) {
-            fitMapToGeometry(APP.map, circleGeoJSON);
+            // NOUVEAU: Recentrage avec offset horizontal et padding triplé
+            try {
+                const bbox = turf.bbox(circleGeoJSON);
+                const padding = { top: 100, bottom: 100, left: 100, right: 100 };
+                if (APP.map && typeof APP.map.cameraForBounds === 'function') {
+                    const camera = APP.map.cameraForBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding });
+                    if (camera && camera.center) {
+                        const widthLng = bbox[2] - bbox[0];
+                        const offsetLng = widthLng * 0.25; // décalage vers la droite (25% largeur)
+                        const adjustedCenter = { lng: camera.center.lng - offsetLng, lat: camera.center.lat };
+                        APP.map.easeTo({ center: adjustedCenter, zoom: camera.zoom, duration: 800 });
+                    } else {
+                        APP.map.fitBounds(bbox, { padding, duration: 800 });
+                    }
+                } else {
+                    APP.map.fitBounds(bbox, { padding, duration: 800 });
+                }
+            } catch (_) {
+                // Fallback
+                fitMapToGeometry(APP.map, circleGeoJSON);
+            }
             debouncedPrecount(circleGeoJSON);
         }
     }
@@ -104,7 +124,7 @@ function activateTool(tool) {
     if (popup) {
         // Position par défaut comme dans Zecible
         if (!popup.style.left || popup.style.left === 'auto') {
-            popup.style.left = '180px';
+            popup.style.left = (tool === 'circle' ? '100px' : '180px');
             popup.style.top = '100px';
             popup.style.transform = 'none';
             popup.style.right = 'auto';
@@ -144,7 +164,26 @@ function updateCircleRadius() {
         const circleGeoJSON = showCircleOnMap();
         
         if (circleGeoJSON) {
-            fitMapToGeometry(APP.map, circleGeoJSON);
+            // NOUVEAU: Recentrage avec offset horizontal et padding triplé à chaque changement de rayon
+            try {
+                const bbox = turf.bbox(circleGeoJSON);
+                const padding = { top: 100, bottom: 100, left: 100, right: 100 };
+                if (APP.map && typeof APP.map.cameraForBounds === 'function') {
+                    const camera = APP.map.cameraForBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding });
+                    if (camera && camera.center) {
+                        const widthLng = bbox[2] - bbox[0];
+                        const offsetLng = widthLng * 0.25; // décalage vers la droite (25%)
+                        const adjustedCenter = { lng: camera.center.lng - offsetLng, lat: camera.center.lat };
+                        APP.map.easeTo({ center: adjustedCenter, zoom: camera.zoom, duration: 400 });
+                    } else {
+                        APP.map.fitBounds(bbox, { padding, duration: 400 });
+                    }
+                } else {
+                    APP.map.fitBounds(bbox, { padding, duration: 400 });
+                }
+            } catch (_) {
+                fitMapToGeometry(APP.map, circleGeoJSON);
+            }
             debouncedPrecount(circleGeoJSON);
         }
     }
@@ -173,6 +212,10 @@ function validateCircleSelection() {
         performToolSwitch('manual');
         if (window.closePopup) {
             closePopup('circle');
+        }
+        // NOUVEAU: Recentrer la carte sur les USL sélectionnées après validation
+        if (typeof window.recenterOnSelection === 'function') {
+            try { window.recenterOnSelection(60); } catch (_) {}
         }
     }, 500);
 }

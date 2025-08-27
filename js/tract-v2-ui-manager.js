@@ -146,7 +146,8 @@ async function validateTempSelection() {
             // Créer un événement simulé pour handleZoneTypeChange
             const fakeEvent = {
                 target: selector,
-                skipConfirmation: true
+                skipConfirmation: true,
+                skipZoom: true
             };
             handleZoneTypeChange(fakeEvent);
         }
@@ -212,17 +213,22 @@ function handleZoneTypeChange(event) {
         console.log('[NOUVEAU FLUX] Bounds USL purgées en mode France');
     }
     // Appliquer le zoom par défaut pour le nouveau type (animation courte)
-    try {
-        if (window.APP && APP.map && typeof getCurrentZoneLimits === 'function') {
-            const limits = getCurrentZoneLimits();
-            if (limits && typeof limits.DEFAULT_ZOOM_ON_CHANGE === 'number') {
-                const newZoom = limits.DEFAULT_ZOOM_ON_CHANGE;
-                console.log(`[UI] Application du zoom par défaut pour ${newType}:`, newZoom);
-                APP.map.easeTo({ zoom: newZoom, duration: 500 });
+    // Sauf si on vient d'une conversion vers USL, ou si le caller demande skipZoom
+    if (!(window.isConversionInProgress && newType === 'mediaposte') && !(event && event.skipZoom === true)) {
+        try {
+            if (window.APP && APP.map && typeof getCurrentZoneLimits === 'function') {
+                const limits = getCurrentZoneLimits();
+                if (limits && typeof limits.DEFAULT_ZOOM_ON_CHANGE === 'number') {
+                    const newZoom = limits.DEFAULT_ZOOM_ON_CHANGE;
+                    console.log(`[UI] Application du zoom par défaut pour ${newType}:`, newZoom);
+                    APP.map.easeTo({ zoom: newZoom, duration: 500 });
+                }
             }
+        } catch (e) {
+            console.warn('[UI] Impossible d\'appliquer le zoom par défaut:', e);
         }
-    } catch (e) {
-        console.warn('[UI] Impossible d\'appliquer le zoom par défaut:', e);
+    } else {
+        console.log('[UI] Zoom par défaut ignoré (conversion en cours ou skipZoom demandé)');
     }
     
     // Si on vient d'une conversion ET qu'on passe en mode USL, ne pas recharger
@@ -400,7 +406,8 @@ function updateCircleRadiusDisplay() {
     
     if (slider && display) {
         const value = parseFloat(slider.value);
-        display.textContent = value + ' km';
+        const formatted = value < 1 ? value.toFixed(2) : value.toString();
+        display.textContent = formatted + ' km';
         return value;
     }
     
