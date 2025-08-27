@@ -34,19 +34,23 @@ function performToolSwitch(tool) {
     hideIsochrone();
     hideEstimation();
     
-    // Effacer le polygone si on change d'outil
-    if (tool !== 'polygon' && APP.draw) {
-        APP.draw.deleteAll();
+    // Effacer le polygone si on change d'outil (sécurisé)
+    if (tool !== 'polygon' && APP && APP.draw && typeof APP.draw.deleteAll === 'function') {
+        try {
+            APP.draw.deleteAll();
+        } catch (e) {
+            console.warn('[DRAW] deleteAll échoué:', e);
+        }
         GLOBAL_STATE.currentPolygonId = null;
     }
     
     // Gérer le mode Draw pour polygone
-    if (APP.draw) {
+    if (APP && APP.draw) {
         if (tool === 'polygon') {
-            APP.draw.changeMode('draw_polygon');
+            try { APP.draw.changeMode('draw_polygon'); } catch(_) {}
             showStatus('Cliquez sur la carte pour dessiner un polygone', 'warning');
         } else {
-            APP.draw.changeMode('simple_select');
+            try { APP.draw.changeMode('simple_select'); } catch(_) {}
         }
     }
     

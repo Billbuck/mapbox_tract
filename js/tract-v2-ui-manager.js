@@ -498,9 +498,12 @@ function closePopup(tool) {
     // Désactiver les boutons d'outils
     document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
     
-    // Retour au mode manuel
+    // Retour au mode manuel UNIQUEMENT pour les popups d'outils (éviter reset/import/adresse)
     if (typeof switchTool !== 'undefined') {
-        switchTool('manual');
+        const toolPopups = ['circle', 'isochrone', 'polygon'];
+        if (toolPopups.includes(tool)) {
+            switchTool('manual');
+        }
     }
 }
 
