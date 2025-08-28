@@ -245,6 +245,11 @@ function validateAddress() {
         return;
     }
     
+    // Reset de l'étude chargée (sans mouvement de carte)
+    if (window.initializeState) {
+        try { initializeState(); } catch (e) { console.warn('[ADDRESS-MANAGER] initializeState a échoué:', e); }
+    }
+
     // Mettre à jour l'état global
     GLOBAL_STATE.storeLocation = selectedCoordinates;
     GLOBAL_STATE.hasValidatedAddress = true;
