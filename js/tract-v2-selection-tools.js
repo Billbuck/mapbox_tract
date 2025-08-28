@@ -128,7 +128,7 @@ function performToolSwitch(tool) {
  */
 function activateTool(tool) {
     // Empêcher le rechargement de la page
-    if (event) {
+    if (typeof event !== 'undefined' && event) {
         event.preventDefault();
         event.stopPropagation();
     }
@@ -152,7 +152,7 @@ function activateTool(tool) {
     if (popup) {
         // Position par défaut comme dans Zecible
         if (!popup.style.left || popup.style.left === 'auto') {
-            popup.style.left = ((tool === 'circle' || tool === 'isochrone') ? '100px' : '180px');
+            popup.style.left = ((tool === 'circle' || tool === 'isochrone' || tool === 'polygon') ? '100px' : '180px');
             popup.style.top = '100px';
             popup.style.transform = 'none';
             popup.style.right = 'auto';
@@ -544,8 +544,16 @@ function clearPolygon() {
         APP.draw.deleteAll();
     }
     GLOBAL_STATE.currentPolygonId = null;
+    GLOBAL_STATE.currentTool = 'polygon';
     hideEstimation();
     showStatus('Polygone effacé', 'warning');
+    // Repasser immédiatement en mode dessin pour permettre un nouveau tracé
+    if (APP && APP.draw && typeof APP.draw.changeMode === 'function') {
+        try {
+            // Laisser Mapbox Draw finaliser la suppression avant de relancer le mode
+            setTimeout(() => { try { APP.draw.changeMode('draw_polygon'); } catch(_) {} }, 50);
+        } catch(_) {}
+    }
 }
 
 // ===== PRÉCOMPTAGE =====

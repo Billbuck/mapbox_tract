@@ -213,6 +213,17 @@ const DRAW_STYLES = [
         }
     },
     {
+        'id': 'gl-draw-polygon-midpoint',
+        'type': 'circle',
+        'filter': ['all', ['==', 'meta', 'midpoint'], ['!=', 'mode', 'static']],
+        'paint': {
+            'circle-radius': 5,
+            'circle-color': '#FFFFFF',
+            'circle-stroke-color': '#C366F2',
+            'circle-stroke-width': 2
+        }
+    },
+    {
         'id': 'gl-draw-polygon-and-line-vertex-active',
         'type': 'circle',
         'filter': ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['!=', 'mode', 'static']],
