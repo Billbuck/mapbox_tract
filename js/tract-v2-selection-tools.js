@@ -49,13 +49,19 @@ function performToolSwitch(tool) {
     }
     
     // Gérer le mode Draw pour polygone
-    if (APP && APP.draw) {
-        if (tool === 'polygon') {
-            try { APP.draw.changeMode('draw_polygon'); } catch(_) {}
-            showStatus('Cliquez sur la carte pour dessiner un polygone', 'warning');
-        } else {
-            try { APP.draw.changeMode('simple_select'); } catch(_) {}
+    if (tool === 'polygon') {
+        // S'assurer que Draw est initialisé/ajouté
+        if (!APP || !APP.draw) {
+            if (typeof initializeDrawTool === 'function') {
+                try { initializeDrawTool(); } catch(_) {}
+            }
         }
+        // Tenter immédiatement puis après un court délai
+        try { if (APP && APP.draw) APP.draw.changeMode('draw_polygon'); } catch(_) {}
+        setTimeout(() => { try { if (APP && APP.draw) APP.draw.changeMode('draw_polygon'); } catch(_) {} }, 150);
+        showStatus('Cliquez sur la carte pour dessiner un polygone', 'warning');
+    } else if (APP && APP.draw) {
+        try { APP.draw.changeMode('simple_select'); } catch(_) {}
     }
     
     // Affichage automatique du cercle si outil cercle et adresse valide
@@ -540,8 +546,8 @@ function validatePolygonSelection() {
  * Effacement du polygone
  */
 function clearPolygon() {
-    if (APP.draw) {
-        APP.draw.deleteAll();
+    if (APP && APP.draw && typeof APP.draw.deleteAll === 'function') {
+        try { APP.draw.deleteAll(); } catch(_) {}
     }
     GLOBAL_STATE.currentPolygonId = null;
     GLOBAL_STATE.currentTool = 'polygon';

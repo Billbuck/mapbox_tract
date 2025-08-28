@@ -438,15 +438,17 @@ function switchImportTab(tab) {
     document.querySelectorAll('.import-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.import-content').forEach(c => c.classList.remove('active'));
     
-    // Activer l'onglet sélectionné
-    const clickedTab = event.target;
-    clickedTab.classList.add('active');
-    
+    // Activer le contenu demandé
     const contentId = 'import-' + tab;
     const content = document.getElementById(contentId);
     if (content) {
         content.classList.add('active');
     }
+    
+    // Activer visuellement le bon onglet sans dépendre de event
+    const tabs = Array.from(document.querySelectorAll('.import-tab'));
+    if (tab === 'codes' && tabs[0]) tabs[0].classList.add('active');
+    if (tab === 'file' && tabs[1]) tabs[1].classList.add('active');
 }
 
 // ===== GESTION DES POPUPS DÉPLAÇABLES =====

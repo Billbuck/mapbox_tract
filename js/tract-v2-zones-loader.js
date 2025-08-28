@@ -233,9 +233,44 @@ async function loadZonesByCodes(codes, onProgress = null) {
         let url, response;
         
         if (isInUSLMode()) {
-            // TODO: Implémenter endpoint API pour USL direct
-            showStatus('Import USL direct non disponible', 'error');
-            return results;
+            // Import direct d'USL par codes
+            url = '/api/france/zones/codes';
+            console.log('[DEBUG] Import codes USL:', codes.length, 'codes');
+            response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type_zone: 'mediaposte',
+                    codes: codes
+                })
+            });
+            const data = await response.json();
+            console.log('[DEBUG] Réponse import USL:', data);
+            if (data.success && data.data.zones) {
+                data.data.zones.forEach(zone => {
+                    if (validateZoneGeometry(zone)) {
+                        const usl = {
+                            id: zone.code,
+                            code: zone.code,
+                            geometry: zone.geometry,
+                            foyers: zone.foyers || 0,
+                            type: 'mediaposte'
+                        };
+                        // Ajouter au cache USL
+                        GLOBAL_STATE.uslCache.set(usl.id, usl);
+                        // Ajouter à la sélection USL
+                        GLOBAL_STATE.finalUSLSelection.set(usl.id, usl);
+                        GLOBAL_STATE.totalSelectedFoyers += usl.foyers;
+                        results.success.push(usl.id);
+                    } else {
+                        results.notFound.push(zone.code);
+                    }
+                });
+                // Mettre à jour l'affichage
+                updateUSLDisplay();
+                updateSelectionDisplay();
+                updateSelectedZonesDisplay();
+            }
         } else {
             // Zones non-USL
             url = '/api/france/zones/codes';

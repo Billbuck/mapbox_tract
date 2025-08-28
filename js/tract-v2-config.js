@@ -109,7 +109,7 @@ const CONFIG = {
         CIRCLE_TOOL: '#ffc107',
         ISOCHRONE_TOOL: '#28a745',
         POLYGON_TOOL: '#D20C0C',
-        MARKER: '#C366F2'                  // Couleur du marqueur point de vente
+        MARKER: '#8F49B3'                  // Couleur du marqueur point de vente (violet demandé)
     },
     
     TIMEOUTS: {
