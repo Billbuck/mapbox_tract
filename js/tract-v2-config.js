@@ -108,7 +108,8 @@ const CONFIG = {
         HOVER_ZONE: '#5f27cd',
         CIRCLE_TOOL: '#ffc107',
         ISOCHRONE_TOOL: '#28a745',
-        POLYGON_TOOL: '#D20C0C'
+        POLYGON_TOOL: '#D20C0C',
+        MARKER: '#C366F2'                  // Couleur du marqueur point de vente
     },
     
     TIMEOUTS: {

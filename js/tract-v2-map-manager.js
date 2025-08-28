@@ -1000,8 +1000,8 @@ function createStoreMarker(coordinates, placeName) {
     Array.from(existingMarkers).forEach(marker => marker.remove());
     
     try {
-        // Créer le nouveau marqueur
-        const marker = new mapboxgl.Marker({ color: '#FF0000' })
+        // Créer le nouveau marqueur (violet thème projet)
+        const marker = new mapboxgl.Marker({ color: (CONFIG && CONFIG.COLORS && CONFIG.COLORS.MARKER) ? CONFIG.COLORS.MARKER : '#C366F2' })
             .setLngLat([lng, lat])
             .addTo(APP.map);
         
