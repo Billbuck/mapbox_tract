@@ -754,6 +754,10 @@ input[type="range"] {
 #popup-isochrone .time-buttons { display: inline-flex !important; align-items: center !important; gap: 8px !important; }
 #popup-isochrone .time-control .zoom-btn { background: transparent !important; box-shadow: none !important; border: none !important; padding: 0 !important; width: 32px !important; height: 32px !important; }
 #popup-isochrone #time-display { color: #000 !important; }
+/* Harmonisation pour la popup Cercle avec les boutons +/- */
+#popup-circle .time-buttons { display: inline-flex !important; align-items: center !important; gap: 8px !important; }
+#popup-circle .time-control .zoom-btn { background: transparent !important; box-shadow: none !important; border: none !important; padding: 0 !important; width: 32px !important; height: 32px !important; }
+#popup-circle #circle-radius-display { color: #000 !important; }
 
 input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;

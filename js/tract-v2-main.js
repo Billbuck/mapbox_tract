@@ -272,7 +272,10 @@ function InitialiserCarte(jsonData) {
                 console.log('[InitialiserCarte] CAS 2 - Adresse seule');
                 showStatus(`Point de vente défini : ${store.adresse}`, 'success');
                 
-                // Mettre à jour WebDev
+                // Mettre à jour WebDev (adresse + sélection à 0)
+                if (window.updateWebDevAddress) {
+                    try { window.updateWebDevAddress(store.adresse); } catch(_) {}
+                }
                 if (window.updateSelectionWebDev) {
                     window.updateSelectionWebDev(0, 0);
                 }

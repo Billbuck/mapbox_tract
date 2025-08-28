@@ -248,6 +248,67 @@ function validateCircleSelection() {
     }, 500);
 }
 
+// --- Contrôles +/- pour le rayon du cercle (affichage immédiat + debounce mise à jour) ---
+let circleUpdateTimeout = null;
+
+function getCircleStep(value) {
+    const v = typeof value === 'number' ? value : parseFloat(value) || 1.5;
+    if (v < 2) return 0.25;     // [0.25, 2)
+    if (v < 4) return 0.5;      // [2, 4)
+    if (v < 10) return 1;       // [4, 10)
+    if (v < 20) return 2;       // [10, 20)
+    return 5;                   // [20, 50]
+}
+
+function roundToStep(value, step) {
+    return Math.round(value / step) * step;
+}
+
+function scheduleCircleUpdate() {
+    const input = document.getElementById('circle-radius');
+    if (!input) return;
+    let value = parseFloat(input.value);
+    if (isNaN(value)) value = 1.5;
+    value = Math.max(0.25, Math.min(50, value));
+    const step = getCircleStep(value);
+    value = roundToStep(value, step);
+    input.value = value;
+    if (typeof updateCircleRadiusDisplay === 'function') updateCircleRadiusDisplay();
+    if (circleUpdateTimeout) {
+        clearTimeout(circleUpdateTimeout);
+    }
+    circleUpdateTimeout = setTimeout(() => {
+        try { updateCirclePreview(); } catch(_) {}
+        circleUpdateTimeout = null;
+    }, 350);
+}
+
+function incrementCircleRadius() {
+    const input = document.getElementById('circle-radius');
+    if (!input) return;
+    const before = parseFloat(input.value) || 1.5;
+    const step1 = getCircleStep(before);
+    let rawAfter = before + step1;
+    rawAfter = Math.max(0.25, Math.min(50, rawAfter));
+    const step2 = getCircleStep(rawAfter);
+    const after = roundToStep(rawAfter, step2);
+    input.value = after;
+    scheduleCircleUpdate();
+}
+
+function decrementCircleRadius() {
+    const input = document.getElementById('circle-radius');
+    if (!input) return;
+    const before = parseFloat(input.value) || 1.5;
+    const step1 = getCircleStep(before);
+    let rawAfter = before - step1;
+    rawAfter = Math.max(0.25, Math.min(50, rawAfter));
+    const step2 = getCircleStep(rawAfter);
+    const after = roundToStep(rawAfter, step2);
+    input.value = after;
+    scheduleCircleUpdate();
+}
+
 // ===== OUTIL ISOCHRONE =====
 
 /**

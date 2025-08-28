@@ -5,6 +5,7 @@ let popupGeocoder = null;
 let selectedCoordinates = null;
 let selectedAddress = null;
 let isFirstMandatoryOpen = true;
+let isGeocoderClearing = false;
 
 /**
  * Vérifie si l'adresse est requise (première ouverture)
@@ -180,7 +181,9 @@ function initializePopupGeocoder() {
     
     // Gérer l'effacement
     popupGeocoder.on('clear', function() {
-        console.log('[ADDRESS-MANAGER] Recherche effacée');
+        if (!isGeocoderClearing) {
+            console.log('[ADDRESS-MANAGER] Recherche effacée');
+        }
         resetAddressDisplay();
     });
 }
@@ -213,9 +216,15 @@ function resetAddressDisplay() {
         validateBtn.disabled = true;
     }
     
-    // Vider le geocoder
+    // Vider le geocoder (éviter la récursion via le flag)
     if (popupGeocoder) {
-        popupGeocoder.clear();
+        if (!isGeocoderClearing) {
+            isGeocoderClearing = true;
+            try {
+                popupGeocoder.clear();
+            } catch(_) {}
+            isGeocoderClearing = false;
+        }
     }
     
     selectedCoordinates = null;
@@ -249,6 +258,18 @@ function validateAddress() {
         zoom: 14
     });
     
+    // Capturer les valeurs avant reset
+    const validatedCoordinates = selectedCoordinates;
+    const validatedAddress = selectedAddress;
+
+    // Afficher le message de succès AVANT reset
+    showStatus(`Point de vente défini : ${validatedAddress}`, 'success');
+
+    // Notifier WebDev du libellé d'adresse AVANT reset
+    if (window.updateWebDevAddress) {
+        try { window.updateWebDevAddress(validatedAddress); } catch(_) {}
+    }
+
     // Retirer la classe address-required
     document.body.classList.remove('address-required');
     
@@ -259,17 +280,14 @@ function validateAddress() {
         popup.classList.remove('required');
     }
     
-    // Réinitialiser l'affichage
+    // Réinitialiser l'affichage (vide le champ de recherche)
     resetAddressDisplay();
     
     // Charger les zones pour la nouvelle position
     setTimeout(() => {
         loadZonesForCurrentView(true);
     }, 500);
-    
-    // Afficher le message de succès
-    showStatus(`Point de vente défini : ${selectedAddress}`, 'success');
-    
+
     // Mettre à jour WebDev si disponible
     if (window.updateSelectionWebDev) {
         window.updateSelectionWebDev(0, 0);
@@ -277,7 +295,7 @@ function validateAddress() {
     
     // Appeler la fonction WebDev si disponible
     if (window.onAddressValidated) {
-        window.onAddressValidated(selectedCoordinates[1], selectedCoordinates[0], selectedAddress);
+        window.onAddressValidated(validatedCoordinates[1], validatedCoordinates[0], validatedAddress);
     }
 }
 
