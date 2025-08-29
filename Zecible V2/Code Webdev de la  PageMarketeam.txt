@@ -1,0 +1,225 @@
+=== CODE WEBDEV PageMarketeam ===
+
+// Déclarations globales de PageMarketeam (serveur)
+sAdressePointVente est une chaîne <synchronisé navigateur>
+rLatitude est un réel <synchronisé navigateur>
+rLongitude est un réel <synchronisé navigateur>
+sZonesSelectionnees est une chaîne <synchronisé navigateur>
+sCriteresSelectionnees est une chaîne <synchronisé navigateur>
+
+// Code navigateur pour forcer l'inclusion
+sAdressePointVente = sAdressePointVente 
+rLatitude = rLatitude 
+rLongitude = rLongitude
+
+
+Code du bouton "suivant" du tunnel :
+
+// Code navigateur avant le traitement Serveur Ajax :
+CelluleCarte.Plan++
+
+// Code Serveur Ajax :
+si CelluleCarte.Plan = 2 _et_ htmlCarte = "Html" alors
+	sTexte est une chaîne = UTF8VersChaîne(fChargeTexte(fRepWeb() + "\marketeam\marketeam_france_carte_only.html"))
+	sTexte		= sTexte.Remplace("RepWeb", RépertoireWeb(), MotComplet)
+	htmlCarte	= sTexte
+fin
+
+// Code navigateur Après le traitement Serveur Ajax :
+si CelluleCarte.Plan = 2 alors
+	JavascriptInitPlanCarte(libZone.Alias, libTotal.Alias, libAdresse.Alias)
+fin 
+
+// Procédure JavaScript locale
+fonction JavascriptInitPlanCarte(aliasZone, aliasFoyer, aliasAdresse)
+    InitialiserModuleFrance()
+    CommunicationCarteWebDev(aliasZone, aliasFoyer, aliasAdresse)
+fin
+
+// InitialiserModuleFrance est une fonction qui se trouve dans le fichier entete-france.js
+
+// Code de la procédure CommunicationCarteWebDev(aliasZone, aliasFoyer, aliasAdresse) :
+
+function CommunicationCarteWebDev(aliasLibZones, aliasLibTotal, aliasLibAdresse) {
+    console.log("Initialisation communication avec WebDev - Module France");
+    console.log("Alias zones:", aliasLibZones);
+    console.log("Alias total:", aliasLibTotal);
+    console.log("Alias adresse:", aliasLibAdresse);
+
+    // WebDev génère des IDs avec le préfixe "tz" pour les libellés
+    var idZones = "tz" + aliasLibZones;
+    var idTotal = "tz" + aliasLibTotal;
+    var idAdresse = "tz" + aliasLibAdresse;
+
+    // Variable locale pour stocker le type de zone actuel
+    var typeZoneActuel = 'iris'; // Par défaut
+
+    // Fonction pour mettre à jour un libellé WebDev sans toucher aux styles
+    function updateWebDevLabel(elementId, text) {
+        var element = document.getElementById(elementId);
+        if (!element) return false;
+
+        // WebDev utilise une structure table > tbody > tr > td pour les libellés
+        // Chercher le TD qui contient le texte
+        var tdElement = element.querySelector('td');
+        if (tdElement) {
+            // Mettre à jour uniquement le contenu texte du TD
+            tdElement.textContent = text.trim();
+        } else {
+            // Fallback si pas de table (au cas où)
+            element.textContent = text.trim();
+        }
+        return true;
+    }
+
+    // Fonction pour obtenir le texte adapté selon le type de zone
+    function getZoneText(nbZones, typeZone) {
+        var textZones;
+        var nomZone;
+
+        // Déterminer le nom de la zone selon le type
+        switch(typeZone) {
+            case 'iris':
+                nomZone = 'IRIS';
+                break;
+            case 'commune':
+                nomZone = 'commune';
+                break;
+            case 'departement':
+                nomZone = 'département';
+                break;
+            case 'region':
+                nomZone = 'région';
+                break;
+            case 'code_postal':
+                nomZone = 'code postal';
+                break;
+            default:
+                nomZone = 'zone';
+        }
+
+        // Créer le texte avec gestion du singulier/pluriel
+        if (nbZones === 0) {
+            if (typeZone === 'iris') {
+                textZones = '0 IRIS sélectionné';
+            } else {
+                textZones = '0 ' + nomZone + ' sélectionnée';
+            }
+        } else if (nbZones === 1) {
+            if (typeZone === 'iris') {
+                textZones = '1 IRIS sélectionné';
+            } else {
+                textZones = '1 ' + nomZone + ' sélectionnée';
+            }
+        } else {
+            if (typeZone === 'iris') {
+                textZones = nbZones + ' IRIS sélectionnés';
+            } else if (typeZone === 'code_postal') {
+                textZones = nbZones + ' codes postaux sélectionnés';
+            } else {
+                textZones = nbZones + ' ' + nomZone + 's sélectionnées';
+            }
+        }
+
+        return textZones;
+    }
+
+    // Fonction pour mettre à jour les libellés WebDev
+    window.updateSelectionWebDev = function(nbZones, nbTotal) {
+        console.log("Mise à jour sélection:", nbZones, "zones,", nbTotal, "total");
+        console.log("Type de zone actuel:", typeZoneActuel);
+
+        // Créer le texte pour les zones selon le type
+        var textZones = getZoneText(nbZones, typeZoneActuel);
+
+        // Créer le texte pour le total
+        var textTotal;
+        if (nbTotal === 0) {
+            textTotal = '0';
+        } else {
+            textTotal = nbTotal.toLocaleString('fr-FR');
+        }
+
+        // Mettre à jour les libellés
+        if (updateWebDevLabel(idZones, textZones)) {
+            console.log("✓ Zones mises à jour:", textZones);
+        } else {
+            console.error("✗ Libellé zones non trouvé avec ID:", idZones);
+        }
+
+        if (updateWebDevLabel(idTotal, textTotal)) {
+            console.log("✓ Total mis à jour:", textTotal);
+        } else {
+            console.error("✗ Libellé total non trouvé avec ID:", idTotal);
+        }
+    };
+
+    // Fonction pour mettre à jour le type de zone (usage interne uniquement)
+    window.updateTypeZoneWebDev = function(nouveauType) {
+        console.log("Changement type de zone:", typeZoneActuel, "->", nouveauType);
+        typeZoneActuel = nouveauType;
+
+        // Si des zones sont déjà sélectionnées, mettre à jour l'affichage
+        if (typeof GLOBAL_STATE !== 'undefined' && GLOBAL_STATE.selectedZones) {
+            updateSelectionWebDev(GLOBAL_STATE.selectedZones.size, GLOBAL_STATE.totalPopulation || 0);
+        }
+    };
+
+    // Fonction pour mettre à jour l'adresse
+    window.updateWebDevAddress = function(nouvelleAdresse) {
+        console.log("Mise à jour adresse:", nouvelleAdresse);
+        if (updateWebDevLabel(idAdresse, nouvelleAdresse)) {
+            console.log("✓ Adresse mise à jour:", nouvelleAdresse);
+        } else {
+            console.error("✗ Libellé adresse non trouvé avec ID:", idAdresse);
+        }
+    };
+
+    // Fonction pour récupérer l'adresse depuis WebDev
+    window.getStoreAddressFromWebDev = function() {
+        var element = document.getElementById(idAdresse);
+        if (element) {
+            // Chercher dans le TD si structure table
+            var tdElement = element.querySelector('td');
+            var adresse = '';
+            if (tdElement) {
+                adresse = (tdElement.textContent || '').trim();
+            } else {
+                adresse = (element.textContent || '').trim();
+            }
+            console.log("Adresse récupérée:", adresse);
+            return adresse;
+        }
+        console.error("✗ Libellé adresse non trouvé avec ID:", idAdresse);
+        return '';
+    };
+
+    // Fonction pour récupérer le type de zone actuel (pour la sauvegarde)
+    window.getCurrentZoneType = function() {
+        if (typeof GLOBAL_STATE !== 'undefined' && GLOBAL_STATE.currentZoneType) {
+            return GLOBAL_STATE.currentZoneType;
+        }
+        return typeZoneActuel;
+    };
+
+    // Test initial
+    setTimeout(function() {
+        console.log("=== Test initial Module France ===");
+
+        // Vérifier la structure une fois pour debug
+        var elementTest = document.getElementById(idZones);
+        if (elementTest) {
+            var tdTest = elementTest.querySelector('td');
+            if (tdTest) {
+                console.log("Structure confirmée: DIV > TABLE > ... > TD");
+                console.log("Contenu TD actuel:", tdTest.textContent);
+            }
+        }
+
+        // Initialiser à 0
+        window.updateSelectionWebDev(0, 0);
+
+        console.log("=== Communication WebDev Module France prête ===");
+    }, 500);
+}
+

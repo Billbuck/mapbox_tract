@@ -268,6 +268,9 @@ function readFileContent(file) {
  * Traitement de l'import
  */
 async function processImport() {
+    // Lire le mode d'import sélectionné
+    const modeInput = document.querySelector('input[name="import-mode"]:checked');
+    const importMode = modeInput ? modeInput.value : 'add'; // new | add | remove
     const activeTab = document.querySelector('.import-content.active').id;
     let content = '';
     
@@ -318,29 +321,41 @@ async function processImport() {
     // Fermer la popup
     closeImportPopup();
     
-    // Exécuter l'import
+    // Exécuter l'import selon le mode et le type
     if (isInUSLMode()) {
-        await importUSLCodes(validCodes);
+        await importUSLCodes(validCodes, importMode);
     } else {
-        await importNonUSLCodes(validCodes);
+        await importNonUSLCodes(validCodes, importMode);
     }
 }
 
 /**
  * Import de codes USL
  */
-async function importUSLCodes(codes) {
+async function importUSLCodes(codes, importMode = 'add') {
     showStatus(`Import USL : ${codes.length} codes...`, 'warning');
     
-    // Vider la sélection actuelle
-    GLOBAL_STATE.finalUSLSelection.clear();
-    GLOBAL_STATE.totalSelectedFoyers = 0;
+    // Appliquer le mode
+    if (importMode === 'new') {
+        GLOBAL_STATE.finalUSLSelection.clear();
+        GLOBAL_STATE.totalSelectedFoyers = 0;
+    }
     
     try {
         // Charger les zones par codes (API à implémenter)
         const results = await loadZonesByCodes(codes);
         
         if (results && results.success.length > 0) {
+            if (importMode === 'remove') {
+                // Retirer les USL importées de la sélection finale
+                results.success.forEach(id => {
+                    if (GLOBAL_STATE.finalUSLSelection.has(id)) {
+                        const usl = GLOBAL_STATE.finalUSLSelection.get(id);
+                        GLOBAL_STATE.totalSelectedFoyers -= (usl && usl.foyers) ? usl.foyers : 0;
+                        GLOBAL_STATE.finalUSLSelection.delete(id);
+                    }
+                });
+            }
             const message = `Import terminé : ${results.success.length} USL importées (${GLOBAL_STATE.totalSelectedFoyers} foyers)`;
             showStatus(message, 'success');
             
@@ -359,12 +374,14 @@ async function importUSLCodes(codes) {
 /**
  * Import de codes non-USL
  */
-async function importNonUSLCodes(codes) {
+async function importNonUSLCodes(codes, importMode = 'add') {
     const zoneConfig = getCurrentZoneConfig();
     showStatus(`Import ${zoneConfig.label} : ${codes.length} codes...`, 'warning');
     
-    // Vider la sélection temporaire actuelle
-    GLOBAL_STATE.tempSelection.clear();
+    // Appliquer le mode
+    if (importMode === 'new') {
+        GLOBAL_STATE.tempSelection.clear();
+    }
     
     try {
         // Charger les zones par codes
@@ -376,6 +393,12 @@ async function importNonUSLCodes(codes) {
             
             // Marquer comme en mode temporaire
             GLOBAL_STATE.isInTempMode = true;
+
+            if (importMode === 'remove') {
+                results.success.forEach(code => {
+                    GLOBAL_STATE.tempSelection.delete(code);
+                });
+            }
             
             updateSelectionDisplay();
             updateSelectedZonesDisplay();

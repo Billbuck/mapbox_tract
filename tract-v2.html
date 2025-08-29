@@ -130,6 +130,10 @@
                 </div>
                 
                 <div id="import-codes" class="import-content active">
+                    <div class="import-info">
+                        <span class="icon-16 icon-ampoule"></span>
+                        Collez vos codes un par ligne. Le format dépend du type de zone sélectionné.
+                    </div>
                     <textarea id="import-codes-text" class="import-textarea" 
                         placeholder="Collez vos codes ici, un par ligne"></textarea>
                     <div id="import-stats" class="import-stats" style="display: none;">
@@ -138,8 +142,37 @@
                 </div>
                 
                 <div id="import-file" class="import-content">
+                    <div class="import-info">
+                        <span class="icon-16 icon-ampoule"></span>
+                        Importez un fichier CSV ou TXT contenant une colonne de codes.
+                    </div>
                     <input type="file" id="import-file-input" accept=".csv,.txt" onchange="handleFileSelect(event)">
                     <div id="file-preview"></div>
+                </div>
+            </div>
+
+            <!-- Sélecteur de mode d'import (calqué Zecible) -->
+            <div class="import-mode-selector">
+                <div class="import-mode-option">
+                    <input type="radio" id="import-mode-new" name="import-mode" value="new">
+                    <label for="import-mode-new">
+                        <span class="mode-icon"><span class="icon-container icon-20 icon-mode-new"></span></span>
+                        <span class="mode-text">Créer une nouvelle sélection</span>
+                    </label>
+                </div>
+                <div class="import-mode-option">
+                    <input type="radio" id="import-mode-add" name="import-mode" value="add" checked>
+                    <label for="import-mode-add">
+                        <span class="mode-icon"><span class="icon-container icon-20 icon-mode-add"></span></span>
+                        <span class="mode-text">Ajouter à la sélection</span>
+                    </label>
+                </div>
+                <div class="import-mode-option">
+                    <input type="radio" id="import-mode-remove" name="import-mode" value="remove">
+                    <label for="import-mode-remove">
+                        <span class="mode-icon"><span class="icon-container icon-20 icon-mode-remove"></span></span>
+                        <span class="mode-text">Retirer de la sélection</span>
+                    </label>
                 </div>
             </div>
             <div class="popup-footer">
