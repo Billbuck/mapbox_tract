@@ -222,6 +222,15 @@ function handleZoneTypeChange(event) {
     
     if (newType === oldType) return;
     
+    // NOUVEAU : Désactiver le listener moveend AVANT de définir le flag
+    if (window.moveEndHandler && APP.map) {
+        APP.map.off('moveend', window.moveEndHandler);
+        console.log('[UI] Listener moveend désactivé au début du changement');
+    }
+    
+    // Activer le flag pour éviter la race condition
+    GLOBAL_STATE.isChangingZoneType = true;
+    
     // Skip les confirmations si demandé (après conversion automatique)
     const skipConfirm = event.skipConfirmation === true;
     
@@ -229,6 +238,13 @@ function handleZoneTypeChange(event) {
     if (!skipConfirm && oldType === 'mediaposte' && GLOBAL_STATE.finalUSLSelection.size > 0) {
         if (!confirm('Changer de type de zone va vider votre sélection USL. Continuer ?')) {
             event.target.value = oldType;
+            GLOBAL_STATE.isChangingZoneType = false; // Annuler le flag si on annule
+            
+            // Réactiver le listener moveend car on annule
+            if (window.moveEndHandler && APP.map) {
+                APP.map.on('moveend', window.moveEndHandler);
+            }
+            
             return;
         }
         clearFinalSelection();
@@ -238,6 +254,13 @@ function handleZoneTypeChange(event) {
     if (!skipConfirm && oldType !== 'mediaposte' && GLOBAL_STATE.tempSelection.size > 0) {
         if (!confirm('Changer de type de zone va vider votre sélection temporaire. Continuer ?')) {
             event.target.value = oldType;
+            GLOBAL_STATE.isChangingZoneType = false; // Annuler le flag si on annule
+            
+            // Réactiver le listener moveend car on annule
+            if (window.moveEndHandler && APP.map) {
+                APP.map.on('moveend', window.moveEndHandler);
+            }
+            
             return;
         }
         clearTempSelection();
@@ -262,7 +285,31 @@ function handleZoneTypeChange(event) {
         }
         // Purger aussi les bounds USL enregistrées
         GLOBAL_STATE.loadedBounds = GLOBAL_STATE.loadedBounds.filter(b => b.type !== 'mediaposte');
+        
+        // IMPORTANT : Effacer immédiatement les USL de la carte
+        if (APP.map && APP.map.getSource('zones-usl')) {
+            APP.map.getSource('zones-usl').setData({
+                type: 'FeatureCollection',
+                features: []
+            });
+        }
+    } else if (newType === 'mediaposte') {
+        // Si on passe EN mode USL, effacer les zones France de la carte
+        if (APP.map) {
+            ['zones-france', 'zones-france-superior'].forEach(sourceId => {
+                if (APP.map.getSource(sourceId)) {
+                    APP.map.getSource(sourceId).setData({
+                        type: 'FeatureCollection',
+                        features: []
+                    });
+                }
+            });
+        }
     }
+    
+    // Nettoyer les caches AVANT le changement de zoom
+    clearCacheForTypeChange();
+    
     // Appliquer le zoom par défaut pour le nouveau type (animation courte)
     // Sauf si on vient d'une conversion vers USL, ou si le caller demande skipZoom
     if (!(window.isConversionInProgress && newType === 'mediaposte') && !(event && event.skipZoom === true)) {
@@ -287,10 +334,16 @@ function handleZoneTypeChange(event) {
         
         updateSelectionDisplay();
         updateValidateButton();
+        GLOBAL_STATE.isChangingZoneType = false; // Désactiver le flag car on sort prématurément
+        
+        // Réactiver le listener moveend car on sort prématurément
+        if (window.moveEndHandler && APP.map) {
+            APP.map.on('moveend', window.moveEndHandler);
+            console.log('[UI] Listener moveend réactivé (sortie prématurée)');
+        }
+        
         return;
     }
-    
-    clearCacheForTypeChange();
     
     showStatus(`Basculement vers ${getCurrentZoneConfig().label}`, 'success');
     
@@ -301,9 +354,21 @@ function handleZoneTypeChange(event) {
     updateUIVisibilityForMode();
     
     // Recharger les zones avec forceUpdate
+    // Attendre un peu plus longtemps pour s'assurer que l'animation est terminée
     setTimeout(() => {
+        // Réactiver le listener moveend AVANT de charger
+        if (window.moveEndHandler && APP.map) {
+            APP.map.on('moveend', window.moveEndHandler);
+            console.log('[UI] Listener moveend réactivé');
+        }
+        
         loadZonesForCurrentView(true);
-    }, 100);
+        
+        // Désactiver le flag après le chargement
+        setTimeout(() => {
+            GLOBAL_STATE.isChangingZoneType = false;
+        }, 100);
+    }, 600); // 600ms > durée de l'animation (500ms)
 }
 
 // ===== AFFICHAGE DES MESSAGES =====

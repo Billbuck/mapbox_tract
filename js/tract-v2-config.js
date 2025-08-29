@@ -165,6 +165,9 @@ const GLOBAL_STATE = {
     // Session pour tables temporaires
     sessionId: null,  // NOUVEAU
     
+    // Flag pour éviter la race condition lors du changement de type
+    isChangingZoneType: false,  // Indique qu'un changement de type est en cours
+    
     // Compteurs
     totalSelectedFoyers: 0,
     tempSelectedCount: 0

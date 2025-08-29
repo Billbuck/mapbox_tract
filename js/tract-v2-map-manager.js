@@ -161,7 +161,9 @@ function setupMapEvents() {
     updateZoomIndicator();
     
     let moveTimeout;
-    APP.map.on('moveend', () => {
+    
+    // Définir le handler moveend comme fonction nommée pour pouvoir le retirer/ajouter
+    const moveEndHandler = () => {
         const bounds = APP.map.getBounds();
         const zoom = APP.map.getZoom();
 
@@ -170,6 +172,16 @@ function setupMapEvents() {
 
             GLOBAL_STATE.suppressMoveLoad = false;
             // Mettre à jour la visibilité des boutons mais éviter tout autre traitement
+            if (typeof updateActionButtonsVisibility === 'function') {
+                updateActionButtonsVisibility();
+            }
+            return;
+        }
+        
+        // NOUVEAU : Si un changement de type est en cours, ne pas charger
+        if (window.GLOBAL_STATE && GLOBAL_STATE.isChangingZoneType === true) {
+            console.log('[MAP] Chargement ignoré - changement de type en cours');
+            // Mettre à jour quand même la visibilité des boutons
             if (typeof updateActionButtonsVisibility === 'function') {
                 updateActionButtonsVisibility();
             }
@@ -186,7 +198,12 @@ function setupMapEvents() {
         if (typeof updateActionButtonsVisibility === 'function') {
             updateActionButtonsVisibility();
         }
-    });
+    };
+    
+    APP.map.on('moveend', moveEndHandler);
+    
+    // Exporter le handler pour pouvoir le gérer depuis d'autres modules
+    window.moveEndHandler = moveEndHandler;
     
     // Configuration de la sélection par rectangle
     setupBoxSelection();
