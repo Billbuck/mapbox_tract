@@ -1,5 +1,68 @@
 // ===== GESTION INTERFACE TRACT V2 =====
 
+// ===== FONCTION CENTRALISÉE DE VISIBILITÉ UI =====
+
+/**
+ * Fonction CENTRALISÉE pour gérer la visibilité de tous les éléments UI
+ * Appelée à chaque changement de mode
+ */
+function updateUIVisibilityForMode() {
+    const currentType = GLOBAL_STATE.currentZoneType;
+    console.log('[UI] Mise à jour visibilité pour mode:', currentType);
+    
+    // 1. BOUTON RECHERCHER
+    // Visible UNIQUEMENT pour : commune, code_postal, departement
+    // PAS pour : mediaposte (USL), iris
+    const searchBtn = document.getElementById('search-button');
+    if (searchBtn) {
+        const showSearch = ['commune', 'code_postal', 'departement'].includes(currentType);
+        searchBtn.style.display = showSearch ? 'flex' : 'none';
+        console.log('[UI] Bouton Rechercher:', showSearch ? 'visible' : 'caché');
+    }
+    
+    // 2. SWITCH LIBELLÉS
+    // Visible pour : iris, commune, code_postal, departement
+    // PAS pour : mediaposte (USL)
+    const labelsControl = document.getElementById('labels-control');
+    if (labelsControl) {
+        const showLabels = currentType !== 'mediaposte';
+        labelsControl.style.display = showLabels ? 'flex' : 'none';
+        
+        // Si on passe en USL, désactiver aussi le switch
+        if (currentType === 'mediaposte') {
+            const labelsSwitch = document.getElementById('labels-switch');
+            if (labelsSwitch && labelsSwitch.checked) {
+                labelsSwitch.checked = false;
+                if (window.toggleLabelsVisibility) {
+                    window.toggleLabelsVisibility(false);
+                }
+            }
+        }
+        console.log('[UI] Switch Libellés:', showLabels ? 'visible' : 'caché');
+    }
+    
+    // 3. TOOLBAR (outils cercle/isochrone/polygone)
+    // Visible UNIQUEMENT en mode USL
+    const toolbar = document.getElementById('toolbar');
+    if (toolbar) {
+        const showToolbar = currentType === 'mediaposte';
+        toolbar.classList.toggle('hidden', !showToolbar);
+        console.log('[UI] Toolbar outils:', showToolbar ? 'visible' : 'cachée');
+    }
+    
+    // 4. BOUTON VALIDATION
+    // Visible UNIQUEMENT hors USL avec sélection
+    updateValidateButton();
+    
+    // 5. Réinitialiser les événements de labels si nécessaire
+    if (window.resetLabelsEvents) {
+        window.resetLabelsEvents();
+    }
+}
+
+// Exporter la fonction
+window.updateUIVisibilityForMode = updateUIVisibilityForMode;
+
 // ===== GESTION DU BOUTON VALIDATION =====
 
 /**
@@ -26,33 +89,18 @@ function updateValidateButton() {
 
 /**
  * Met à jour la visibilité de la barre d'outils (Cercle/Isochrone/Polygone)
- * Visible uniquement en mode USL
+ * Utilise maintenant la fonction centralisée
  */
 function updateToolbarVisibility() {
-    const toolbar = document.getElementById('toolbar');
-    if (!toolbar || typeof isInUSLMode !== 'function') return;
-    if (isInUSLMode()) {
-        toolbar.classList.remove('hidden');
-    } else {
-        toolbar.classList.add('hidden');
-    }
+    updateUIVisibilityForMode();
 }
 
 /**
- * Met à jour la visibilité du bouton Rechercher (aligné sur Zecible V2)
+ * Met à jour la visibilité du bouton Rechercher
+ * @deprecated Utiliser updateUIVisibilityForMode() à la place
  */
 function updateSearchButtonVisibility() {
-    const searchBtn = document.getElementById('search-button');
-    const labelsControl = document.getElementById('labels-control');
-    if (!searchBtn) return;
-    const t = GLOBAL_STATE.currentZoneType;
-    const show = (t === 'commune' || t === 'code_postal' || t === 'departement' || t === 'iris');
-
-    searchBtn.style.display = show ? 'flex' : 'none';
-    // Masquer aussi le switch Libellés en mode USL
-    if (labelsControl) {
-        labelsControl.style.display = (t === 'mediaposte') ? 'none' : 'flex';
-    }
+    updateUIVisibilityForMode();
 }
 
 /**
@@ -156,6 +204,9 @@ async function validateTempSelection() {
                 skipZoom: true
             };
             handleZoneTypeChange(fakeEvent);
+            
+            // AJOUTER : Forcer la mise à jour de l'UI après conversion
+            updateUIVisibilityForMode();
         }
     }, 100);
 }
@@ -204,10 +255,6 @@ function handleZoneTypeChange(event) {
     GLOBAL_STATE.lastZoneType = oldType;
     
     GLOBAL_STATE.currentZoneType = newType;
-    // Mettre à jour la visibilité de la barre d'outils selon le mode
-    if (typeof updateToolbarVisibility === 'function') {
-        updateToolbarVisibility();
-    }
     // Vider le cache USL quand on passe en mode France (nouveau flux) et purger les bounds USL
     if (newType !== 'mediaposte') {
         if (GLOBAL_STATE.uslCache && GLOBAL_STATE.uslCache.size > 0) {
@@ -249,14 +296,9 @@ function handleZoneTypeChange(event) {
     
     // IMPORTANT : Toujours mettre à jour l'affichage après changement de type
     updateMapWithAllCachedZones();
-    // Mettre à jour la visibilité du bouton recherche
-    if (typeof updateSearchButtonVisibility === 'function') {
-        updateSearchButtonVisibility();
-    }
-    // Réinitialiser les labels après changement de type
-    if (typeof window.resetLabelsEvents === 'function') {
-        window.resetLabelsEvents();
-    }
+    
+    // REMPLACER tous les appels dispersés par UN SEUL APPEL :
+    updateUIVisibilityForMode();
     
     // Recharger les zones avec forceUpdate
     setTimeout(() => {
