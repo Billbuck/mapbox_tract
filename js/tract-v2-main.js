@@ -130,13 +130,14 @@ function setupUIEvents() {
         try { window.updateSearchButtonVisibility(); } catch(_) {}
     }
     
-    // Restaurer l'état du switch des libellés
+    // Initialiser le switch des libellés à OFF par défaut
     const labelsSwitch = document.getElementById('labels-switch');
     if (labelsSwitch) {
+        // Par défaut OFF, sauf si explicitement sauvegardé comme ON
         const savedState = localStorage.getItem('tract-v2-show-labels') === 'true';
-        labelsSwitch.checked = savedState;
-        if (savedState && window.toggleLabelsVisibility) {
-            window.toggleLabelsVisibility(true);
+        labelsSwitch.checked = savedState || false; // false par défaut
+        if (window.toggleLabelsVisibility) {
+            window.toggleLabelsVisibility(savedState || false);
         }
     }
     
