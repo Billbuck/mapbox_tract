@@ -215,8 +215,8 @@ body {
 }
 
 /* Hover du switch quand ON - violet plus foncé */
-.switch input:checked:hover + .switch-slider {
-    background-color: #934BB7; /* Violet hover */
+.switch:hover input:checked + .switch-slider {
+    background-color: var(--color-primary-hover); /* Violet hover */
 }
 
 .switch-slider:before {
@@ -238,14 +238,6 @@ body {
 
 .switch input:checked + .switch-slider:before {
     transform: translateX(20px);
-}
-
-.switch:hover .switch-slider {
-    background-color: var(--color-neutral-500);
-}
-
-.switch input:checked:hover + .switch-slider {
-    background-color: var(--color-primary-hover);
 }
 
 /* === BOUTONS D'ACTION === */
