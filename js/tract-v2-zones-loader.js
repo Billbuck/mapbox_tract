@@ -6,22 +6,19 @@
  * Chargement des zones pour la vue actuelle
  */
 async function loadZonesForCurrentView(forceReload = false) {
-    console.log('[LOAD-DEBUG] === DEBUT loadZonesForCurrentView ===');
-    console.log('[LOAD-DEBUG] forceReload:', forceReload);
-    console.log('[LOAD-DEBUG] currentZoneType:', GLOBAL_STATE.currentZoneType);
-    console.log('[LOAD-DEBUG] sessionId actuel:', GLOBAL_STATE.sessionId);
+
     
     // Générer un nouvel ID de session si nécessaire
     if (!GLOBAL_STATE.sessionId || (forceReload && GLOBAL_STATE.currentZoneType !== 'mediaposte')) {
         // NOUVEAU : Force nouvelle session quand on change vers un type non-USL
         GLOBAL_STATE.sessionId = generateSessionId();
-        console.log('[LOAD-DEBUG] Nouvelle session créée:', GLOBAL_STATE.sessionId);
+
     }
     
     try {
         // Vérifier les conditions de chargement
         if (!shouldLoadZones(forceReload)) {
-            console.log('[LOAD-DEBUG] shouldLoadZones a retourné false');
+
             return;
         }
         
@@ -34,7 +31,7 @@ async function loadZonesForCurrentView(forceReload = false) {
             lng_min: mapBounds.getWest(),
             lng_max: mapBounds.getEast()
         };
-        console.log('[LOAD-DEBUG] Bounds calculées:', bounds);
+
         let response, url;
         const t0 = performance.now();
         
@@ -42,7 +39,7 @@ async function loadZonesForCurrentView(forceReload = false) {
             url = '/api/zones/rectangle';
             const excludeIds = Array.from(GLOBAL_STATE.uslCache.keys());
             
-            console.log('[DEBUG] Chargement USL, exclusion de', excludeIds.length, 'zones déjà en cache');
+
             
             response = await fetch(url, {
                 method: 'POST',
@@ -58,19 +55,7 @@ async function loadZonesForCurrentView(forceReload = false) {
         } else {
             url = '/api/france/rectangle';
             
-            console.log('[LOAD-DEBUG] Chargement zones France, type:', GLOBAL_STATE.currentZoneType);
-            console.log('[LOAD-DEBUG] Bounds envoyées à l\'API:', {
-                lat_min: bounds.lat_min,
-                lat_max: bounds.lat_max,
-                lng_min: bounds.lng_min,
-                lng_max: bounds.lng_max,
-                type_zone: GLOBAL_STATE.currentZoneType,
-                id_session: GLOBAL_STATE.sessionId
-            });
-            console.log('[LOAD-DEBUG] État du cache France:', {
-                taille: GLOBAL_STATE.currentZonesCache.size,
-                zonesIds: Array.from(GLOBAL_STATE.currentZonesCache.keys()).slice(0, 10) // 10 premiers IDs
-            });
+
             
             // IMPORTANT : Pour les zones non-USL, on ne veut PAS exclure les zones déjà en cache
             // car l'API semble filtrer côté serveur et ne retourne que les nouvelles zones
@@ -91,27 +76,16 @@ async function loadZonesForCurrentView(forceReload = false) {
         }
         
         const t1 = performance.now();
-        console.log(`[PERF] Requête API: ${Math.round(t1 - t0)}ms`);
+
         
         const data = await response.json();
         
         const t2 = performance.now();
-        console.log(`[PERF] Parse JSON: ${Math.round(t2 - t1)}ms`);
-        console.log(`[PERF] Taille réponse: ${JSON.stringify(data).length / 1024 / 1024}MB`);
-        
-        console.log('[DEBUG] Réponse API:', data);
+
         
         // NOUVEAU : Log détaillé pour debug
         if (data.data) {
-            console.log('[DEBUG] Contenu data.data:', {
-                zones: data.data.zones ? data.data.zones.length : 'undefined',
-                zones_superieur: data.data.zones_superieur ? data.data.zones_superieur.length : 'undefined',
-                nb_zones: data.data.nb_zones,
-                nb_zones_superieur: data.data.nb_zones_superieur
-            });
-            if (data.data.zones && data.data.zones.length === 0) {
-                console.warn('[DEBUG] API a retourné 0 zones !');
-            }
+
         }
         
         if (data.success && data.data) {
@@ -140,7 +114,7 @@ async function processLoadedZones(data, bounds, tStart) {
     
     // Traiter les zones principales
     if (data.data.zones && data.data.zones.length > 0) {
-        console.log(`[DEBUG] ${data.data.zones.length} zones reçues`);
+
         
         data.data.zones.forEach(zone => {
             const zoneId = zone.code || zone.id;
@@ -153,7 +127,7 @@ async function processLoadedZones(data, bounds, tStart) {
                     code: zoneId,
                     geometry: zone.geometry,
                     foyers: zone.foyers || 0,
-                    label: zone.libelle || zone.label || zoneId
+                    nom: zone.libelle || zone.label || zone.nom || zoneId
                 });
             } else {
                 invalidCount++;
@@ -161,15 +135,12 @@ async function processLoadedZones(data, bounds, tStart) {
             }
         });
         
-        console.log(`[DEBUG] Zones valides: ${loadedCount}, invalides: ${invalidCount}`);
-        
-        const t3 = performance.now();
-        console.log(`[PERF] Validation zones: ${Math.round(t3 - tStart)}ms`);
+
     }
     
     // Traiter les zones supérieures (contexte)
     if (data.data.zones_superieur && data.data.zones_superieur.length > 0) {
-        console.log(`[DEBUG] ${data.data.zones_superieur.length} zones supérieures reçues`);
+
         
         let validCount = 0;
         let invalidCount = 0;
@@ -184,14 +155,13 @@ async function processLoadedZones(data, bounds, tStart) {
                 });
             } else {
                 invalidCount++;
-                console.warn('[DEBUG] Zone supérieure invalide:', zone.code);
+
             }
         });
         
-        console.log(`[DEBUG] Zones supérieures: ${validCount} valides, ${invalidCount} invalides`);
-        console.log(`[DEBUG] Cache supérieur: ${GLOBAL_STATE.superiorZonesCache.size} zones`);
+
     } else {
-        console.log('[DEBUG] Aucune zone supérieure reçue de l\'API');
+
     }
     
     // Enregistrer les bounds chargées
@@ -235,7 +205,7 @@ async function loadZonesByCodes(codes, onProgress = null) {
         if (isInUSLMode()) {
             // Import direct d'USL par codes
             url = '/api/france/zones/codes';
-            console.log('[DEBUG] Import codes USL:', codes.length, 'codes');
+
             response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -245,7 +215,7 @@ async function loadZonesByCodes(codes, onProgress = null) {
                 })
             });
             const data = await response.json();
-            console.log('[DEBUG] Réponse import USL:', data);
+
             if (data.success && data.data.zones) {
                 data.data.zones.forEach(zone => {
                     if (validateZoneGeometry(zone)) {
@@ -275,7 +245,7 @@ async function loadZonesByCodes(codes, onProgress = null) {
             // Zones non-USL
             url = '/api/france/zones/codes';
             
-            console.log('[DEBUG] Import codes France:', codes.length, 'codes');
+
             
             response = await fetch(url, {
                 method: 'POST',
@@ -287,7 +257,7 @@ async function loadZonesByCodes(codes, onProgress = null) {
             });
             
             const data = await response.json();
-            console.log('[DEBUG] Réponse import:', data);
+
             
             if (data.success && data.data.zones) {
                 data.data.zones.forEach(zone => {
@@ -325,7 +295,7 @@ async function loadZonesByCodes(codes, onProgress = null) {
             onProgress(100, results.success.length, codes.length);
         }
         
-        console.log('[DEBUG] Import terminé:', results);
+
         
     } catch (error) {
         console.error('[ERROR] Erreur import:', error);
@@ -733,11 +703,7 @@ function generateSessionId() {
 
 function shouldLoadZones(forceReload) {
     if (!APP.map || GLOBAL_STATE.isLoading || !hasValidAddress()) {
-        console.log('[LOAD-DEBUG] Conditions de base non remplies:', {
-            map: !!APP.map,
-            isLoading: GLOBAL_STATE.isLoading,
-            hasAddress: hasValidAddress()
-        });
+
         return false;
     }
     
@@ -746,11 +712,7 @@ function shouldLoadZones(forceReload) {
         ? getCurrentZoneLimits().MIN_ZOOM_DISPLAY
         : CONFIG.ZONE_LIMITS[GLOBAL_STATE.currentZoneType].MIN_ZOOM_DISPLAY;
     
-    console.log('[LOAD-DEBUG] Vérification zoom:', {
-        currentZoom,
-        minZoom,
-        zoneType: GLOBAL_STATE.currentZoneType
-    });
+
     
     if (currentZoom < minZoom) {
         const zoneLabel = getCurrentZoneConfig().label;
@@ -768,20 +730,14 @@ function shouldLoadZones(forceReload) {
     
     const alreadyLoaded = isBoundsAlreadyLoaded(bounds);
     
-    console.log('[LOAD-DEBUG] Vérification bounds:', {
-        bounds,
-        alreadyLoaded,
-        forceReload,
-        loadedBounds: GLOBAL_STATE.loadedBounds.length,
-        cacheSize: isInUSLMode() ? GLOBAL_STATE.uslCache.size : GLOBAL_STATE.currentZonesCache.size
-    });
+
     
     if (alreadyLoaded && !forceReload) {
-        console.log('[LOAD-DEBUG] Bounds déjà chargées, mise à jour affichage seulement');
+
         
         // IMPORTANT : Charger quand même les USL en arrière-plan si nécessaire
         if (shouldLoadUSLInBackground()) {
-            console.log('[LOAD-DEBUG] Chargement USL en arrière-plan nécessaire');
+
             loadUSLInBackground(bounds);
         }
         
@@ -792,7 +748,7 @@ function shouldLoadZones(forceReload) {
     
     // Chargement USL en arrière-plan si nécessaire
     if (shouldLoadUSLInBackground()) {
-        console.log('[LOAD-DEBUG] Chargement USL en arrière-plan déclenché');
+
         loadUSLInBackground(bounds);
     }
     

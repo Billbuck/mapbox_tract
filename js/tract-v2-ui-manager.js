@@ -39,16 +39,33 @@ function updateToolbarVisibility() {
 }
 
 /**
+ * Met à jour la visibilité du bouton Rechercher (aligné sur Zecible V2)
+ */
+function updateSearchButtonVisibility() {
+    const searchBtn = document.getElementById('search-button');
+    const labelsControl = document.getElementById('labels-control');
+    if (!searchBtn) return;
+    const t = GLOBAL_STATE.currentZoneType;
+    const show = (t === 'commune' || t === 'code_postal' || t === 'departement' || t === 'iris');
+
+    searchBtn.style.display = show ? 'flex' : 'none';
+    // Masquer aussi le switch Libellés en mode USL
+    if (labelsControl) {
+        labelsControl.style.display = (t === 'mediaposte') ? 'none' : 'flex';
+    }
+}
+
+/**
  * Valide la sélection temporaire et lance la conversion
  */
 async function validateTempSelection() {
-    console.log('[VALIDATION] Début validation sélection temporaire');
+
     if (window.isConversionInProgress) {
-        console.log('[VALIDATION] Ignoré: conversion déjà en cours');
+
         return;
     }
     if (window.isValidationInProgress) {
-        console.log('[VALIDATION] Ignoré: validation déjà en cours');
+
         return;
     }
     window.isValidationInProgress = true;
@@ -64,7 +81,7 @@ async function validateTempSelection() {
     
     // Calculer les bounds de la sélection
     const selectionBounds = calculateSelectionBounds();
-    console.log('[VALIDATION] Bounds de la sélection:', selectionBounds);
+
     
     if (!selectionBounds) {
         showStatus('Erreur calcul zone sélectionnée', 'error');
@@ -83,27 +100,19 @@ async function validateTempSelection() {
     };
     const viewArea = calculateBoundsArea(viewBounds);
     
-    console.log('[VALIDATION] Aires:', {
-        selection: Math.round(selectionArea) + ' km²',
-        vue: Math.round(viewArea) + ' km²',
-        ratio: Math.round(selectionArea / viewArea * 100) / 100
-    });
+
     
     // Vérifier si les USL sont chargées pour cette zone
-    console.log('[NOUVEAU FLUX] Validation sans préchargement USL');
+
     if (!areUSLLoadedForBounds(selectionBounds)) {
-        console.log('[VALIDATION] USL manquantes détectées, chargement nécessaire');
-        console.log('[VALIDATION] Bounds chargées actuelles:', GLOBAL_STATE.loadedBounds);
+
         
         // Afficher le statut
         showStatus('Chargement des USL pour la zone sélectionnée...', 'warning');
         
         try {
             // Charger les USL manquantes
-            console.log('[NOUVEAU FLUX] Chargement USL à la demande pour bounds:', selectionBounds);
-            console.log('[NOUVEAU FLUX] Taille du cache USL avant:', GLOBAL_STATE.uslCache.size);
             const newUSLCount = await loadUSLForSpecificBounds(selectionBounds);
-            console.log('[NOUVEAU FLUX] Taille du cache USL après:', GLOBAL_STATE.uslCache.size);
             
             if (newUSLCount > 0) {
                 showStatus(`${newUSLCount} USL supplémentaires chargées`, 'info');
@@ -114,20 +123,17 @@ async function validateTempSelection() {
                 }
             }
             
-            console.log('[VALIDATION] Cache USL après chargement:', GLOBAL_STATE.uslCache.size);
+
             
         } catch (error) {
-            console.error('[VALIDATION] Erreur chargement USL:', error);
+
             showStatus('Erreur lors du chargement des USL', 'error');
             window.isValidationInProgress = false;
             if (validateBtn) { validateBtn.disabled = false; }
             return;
         }
     } else {
-        console.log('[VALIDATION] USL déjà chargées pour cette zone');
-        console.log('[VALIDATION] USL en cache:', GLOBAL_STATE.uslCache.size);
-        console.log('[VALIDATION] Bounds USL existantes:', 
-            GLOBAL_STATE.loadedBounds.filter(b => b.type === 'mediaposte'));
+
     }
     
     // Lancer la conversion
@@ -206,11 +212,9 @@ function handleZoneTypeChange(event) {
     if (newType !== 'mediaposte') {
         if (GLOBAL_STATE.uslCache && GLOBAL_STATE.uslCache.size > 0) {
             GLOBAL_STATE.uslCache.clear();
-            console.log('[NOUVEAU FLUX] Cache USL vidé en mode France');
         }
         // Purger aussi les bounds USL enregistrées
         GLOBAL_STATE.loadedBounds = GLOBAL_STATE.loadedBounds.filter(b => b.type !== 'mediaposte');
-        console.log('[NOUVEAU FLUX] Bounds USL purgées en mode France');
     }
     // Appliquer le zoom par défaut pour le nouveau type (animation courte)
     // Sauf si on vient d'une conversion vers USL, ou si le caller demande skipZoom
@@ -220,20 +224,20 @@ function handleZoneTypeChange(event) {
                 const limits = getCurrentZoneLimits();
                 if (limits && typeof limits.DEFAULT_ZOOM_ON_CHANGE === 'number') {
                     const newZoom = limits.DEFAULT_ZOOM_ON_CHANGE;
-                    console.log(`[UI] Application du zoom par défaut pour ${newType}:`, newZoom);
+
                     APP.map.easeTo({ zoom: newZoom, duration: 500 });
                 }
             }
         } catch (e) {
-            console.warn('[UI] Impossible d\'appliquer le zoom par défaut:', e);
+
         }
     } else {
-        console.log('[UI] Zoom par défaut ignoré (conversion en cours ou skipZoom demandé)');
+
     }
     
     // Si on vient d'une conversion ET qu'on passe en mode USL, ne pas recharger
     if (window.isConversionInProgress && newType === 'mediaposte') {
-        console.log('[UI] Changement de type après conversion vers USL, pas de rechargement');
+        
         updateSelectionDisplay();
         updateValidateButton();
         return;
@@ -245,6 +249,14 @@ function handleZoneTypeChange(event) {
     
     // IMPORTANT : Toujours mettre à jour l'affichage après changement de type
     updateMapWithAllCachedZones();
+    // Mettre à jour la visibilité du bouton recherche
+    if (typeof updateSearchButtonVisibility === 'function') {
+        updateSearchButtonVisibility();
+    }
+    // Réinitialiser les labels après changement de type
+    if (typeof window.resetLabelsEvents === 'function') {
+        window.resetLabelsEvents();
+    }
     
     // Recharger les zones avec forceUpdate
     setTimeout(() => {
@@ -268,7 +280,7 @@ function showStatus(message, type = 'success') {
         statusEl.classList.remove('active');
     }, 3000);
     
-    console.log(`[STATUS ${type.toUpperCase()}] ${message}`);
+
 }
 
 /**
@@ -549,6 +561,7 @@ window.hideEstimation = hideEstimation;
 window.updateSelectionDisplay = updateSelectionDisplay;
 window.updateActionButtonsVisibility = updateActionButtonsVisibility;
 window.updateToolbarVisibility = updateToolbarVisibility;
+window.updateSearchButtonVisibility = updateSearchButtonVisibility;
 window.updateCircleRadiusDisplay = updateCircleRadiusDisplay;
 window.getIsochroneParams = getIsochroneParams;
 window.switchImportTab = switchImportTab;
@@ -563,9 +576,17 @@ window.clearTempSelection = clearTempSelection;
  */
 function handleLabelsSwitchChange(event) {
     const showLabels = event.target.checked;
-    console.log('[UI] Switch libellés:', showLabels ? 'ON' : 'OFF');
+
     
-    // Appliquer le changement sur la carte
+    // Vérifier que ce n'est pas le mode USL
+    if (GLOBAL_STATE.currentZoneType === 'mediaposte') {
+
+        event.target.checked = false;
+        showStatus('Les libellés ne sont pas disponibles en mode USL', 'warning');
+        return;
+    }
+    
+    // Appliquer le changement
     if (window.toggleLabelsVisibility) {
         window.toggleLabelsVisibility(showLabels);
     }
@@ -578,7 +599,7 @@ function handleLabelsSwitchChange(event) {
  * Réinitialise toutes les sélections
  */
 function resetSelection() {
-    console.log('[UI] Reset selection demandé');
+
     
     // Ouvrir la popup de confirmation
     const popup = document.getElementById('popup-reset-confirm');
@@ -620,7 +641,6 @@ function resetSelection() {
  * Confirme la réinitialisation (appelée depuis la popup)
  */
 function confirmReset(skipWebDevUpdate = true) {
-    console.log('[UI] Réinitialisation confirmée');
     
     // Fermer la popup
     closePopup('reset-confirm');
@@ -642,7 +662,6 @@ function confirmReset(skipWebDevUpdate = true) {
  * Ouvre le popup de modification d'adresse
  */
 function openAddressPopup() {
-    console.log('[UI] Ouverture popup adresse');
     // Cette fonction sera implémentée dans la phase 5 (popups)
     if (window.showStatus) {
         window.showStatus('Fonctionnalité en cours de développement', 'info');

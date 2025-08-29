@@ -6,7 +6,7 @@
  * Initialisation de la carte Mapbox
  */
 function initMap() {
-    console.log('[INIT] Initialisation de la carte Mapbox...');
+
     
     mapboxgl.accessToken = CONFIG.MAPBOX_TOKEN;
     
@@ -29,9 +29,17 @@ function initMap() {
     }
     
     APP.map.on('load', () => {
-        console.log('[INIT] Carte chargée avec succès');
+
         showStatus('Carte chargée - Saisissez une adresse pour commencer', 'success');
         setupMapEvents();
+        // Debug : lister toutes les couches disponibles
+        try {
+            const style = APP.map.getStyle && APP.map.getStyle();
+            const layers = style && Array.isArray(style.layers) ? style.layers : [];
+
+        } catch (e) {
+            console.warn('[MAP] Impossible de lister les couches:', e);
+        }
         
         // Initialiser Draw après un délai pour stabilité
         setTimeout(() => {
@@ -78,11 +86,11 @@ function initMap() {
  * Initialisation de l'outil Draw avec protections
  */
 function initializeDrawTool() {
-    console.log('[DRAW] Initialisation Draw tool...');
+
     
     // Vérifier que la carte est complètement stable
     if (!APP.map || !APP.map.isStyleLoaded()) {
-        console.log('[DRAW] Style pas prêt, report de Draw...');
+
         setTimeout(initializeDrawTool, 1000);
         return;
     }
@@ -90,7 +98,7 @@ function initializeDrawTool() {
     try {
         // Vérifier si Draw n'est pas déjà initialisé
         if (APP.draw) {
-            console.log('[DRAW] Draw déjà initialisé');
+
             return;
         }
         
@@ -109,13 +117,13 @@ function initializeDrawTool() {
         setTimeout(() => {
             if (APP.map && APP.map.isStyleLoaded()) {
                 APP.map.addControl(APP.draw);
-                console.log('[DRAW] Draw tool ajouté avec succès');
+
                 
                 // Nettoyer toutes les géométries existantes après un délai
                 setTimeout(() => {
                     if (APP.draw) {
                         APP.draw.deleteAll();
-                        console.log('[DRAW] Draw nettoyé des géométries par défaut');
+
                     }
                 }, 1000);
             }
@@ -133,15 +141,11 @@ function initializeDrawTool() {
  * Configuration des événements de la carte
  */
 function setupMapEvents() {
-    console.log('[EVENTS] Configuration des événements carte...');
+
     
     // Debug des sources et layers au chargement
     APP.map.on('styledata', () => {
-        console.log('[STYLE] Style rechargé');
-        const sources = Object.keys(APP.map.getStyle().sources);
-        const layers = APP.map.getStyle().layers.map(l => l.id);
-        console.log('[STYLE] Sources présentes:', sources);
-        console.log('[STYLE] Layers présents:', layers.length, 'layers');
+
     });
     
     // Mettre à jour l'indicateur de zoom
@@ -160,20 +164,10 @@ function setupMapEvents() {
     APP.map.on('moveend', () => {
         const bounds = APP.map.getBounds();
         const zoom = APP.map.getZoom();
-        console.log('[MOVE-DEBUG] moveend détecté:', {
-            zoom,
-            bounds: {
-                north: bounds.getNorth(),
-                south: bounds.getSouth(),
-                east: bounds.getEast(),
-                west: bounds.getWest()
-            },
-            zoneType: GLOBAL_STATE.currentZoneType,
-            hasValidAddress: hasValidAddress()
-        });
+
         // Si un recentrage programmatique Isochrone est en cours, ne déclenche pas de chargement
         if (window.GLOBAL_STATE && GLOBAL_STATE.suppressMoveLoad === true) {
-            console.log('[MOVE-DEBUG] moveend issu d\'un recentrage isochrone -> skip chargement');
+
             GLOBAL_STATE.suppressMoveLoad = false;
             // Mettre à jour la visibilité des boutons mais éviter tout autre traitement
             if (typeof updateActionButtonsVisibility === 'function') {
@@ -186,7 +180,7 @@ function setupMapEvents() {
         if (hasValidAddress()) {
             loadZonesForCurrentView();
         } else {
-            console.log('[MOVE-DEBUG] Pas d\'adresse valide, chargement annulé');
+
         }
         // Mise à jour instantanée des actions
         if (typeof updateActionButtonsVisibility === 'function') {
@@ -292,7 +286,7 @@ function filterZonesInViewport(zones) {
     viewport.east += lngMargin;
     viewport.west -= lngMargin;
     
-    console.log('[FILTER-DEBUG] Viewport étendu:', viewport);
+
     
     let visibleCount = 0;
     let outOfViewCount = 0;
@@ -345,7 +339,7 @@ function filterZonesInViewport(zones) {
         }
     });
     
-    console.log(`[FILTER-DEBUG] Résultat: ${visibleCount} visibles, ${outOfViewCount} hors vue`);
+
     
     return filtered;
 }
@@ -355,7 +349,7 @@ function filterZonesInViewport(zones) {
  */
 function updateMapWithAllCachedZones() {
     if (!APP.map || !APP.map.isStyleLoaded()) {
-        console.log('[UPDATE] Style pas prêt, attente...');
+
         
         // Double sécurité : event + timeout
         let updated = false;
@@ -364,7 +358,7 @@ function updateMapWithAllCachedZones() {
         APP.map.once('styledata', () => {
             if (!updated) {
                 updated = true;
-                console.log('[UPDATE] Style maintenant prêt (via event), mise à jour dans 200ms');
+
                 setTimeout(() => updateMapWithAllCachedZones(), 200);
             }
         });
@@ -373,7 +367,7 @@ function updateMapWithAllCachedZones() {
         setTimeout(() => {
             if (!updated && APP.map && APP.map.isStyleLoaded()) {
                 updated = true;
-                console.log('[UPDATE] Style maintenant prêt (via timeout), mise à jour');
+
                 updateMapWithAllCachedZones();
             }
         }, 500);
@@ -381,12 +375,7 @@ function updateMapWithAllCachedZones() {
         return;
     }
     
-    console.log('[UPDATE] Mise à jour zones avec style prêt');
-    console.log('[UPDATE] Cache actuel:', {
-        USL: GLOBAL_STATE.uslCache.size,
-        France: GLOBAL_STATE.currentZonesCache.size,
-        Type: GLOBAL_STATE.currentZoneType
-    });
+
     
     if (isInUSLMode()) {
         updateUSLDisplay();
@@ -437,12 +426,12 @@ function updateUSLDisplay() {
     console.log(`[USL] GeoJSON final:`, geojsonData.features.length, 'features');
     
     const t1 = performance.now();
-    console.log(`[PERF] Création GeoJSON: ${Math.round(t1 - t0)}ms`);
+
     
     updateSource('zones-usl', geojsonData);
     
     const t2 = performance.now();
-    console.log(`[PERF] Update source Mapbox: ${Math.round(t2 - t1)}ms`);
+
     
     if (!APP.map.getLayer('zones-usl-fill')) {
         createUSLLayers();
@@ -614,6 +603,11 @@ function updateFranceZonesDisplay() {
     
     // IMPORTANT : Configurer les événements après l'affichage
     setupZoneEvents('zones-france-fill');
+    
+    // Réinitialiser les événements de survol si les labels sont activés
+    if (typeof window.resetLabelsEvents === 'function') {
+        window.resetLabelsEvents();
+    }
 }
 
 /**
@@ -747,6 +741,133 @@ function createFranceLayers() {
     // IMPORTANT : Configurer les événements de clic
     setupZoneEvents('zones-france-fill');
 }
+
+// === GESTION DES LABELS AU SURVOL ===
+
+let currentLabelElement = null;
+let labelsEnabled = false;
+
+/**
+ * Active/désactive l'affichage des labels
+ */
+function toggleLabelsVisibility(enabled) {
+    labelsEnabled = enabled;
+    
+    if (!enabled && currentLabelElement) {
+        currentLabelElement.remove();
+        currentLabelElement = null;
+    }
+    
+    // Réinitialiser les événements
+    resetLabelsEvents();
+}
+
+/**
+ * Réinitialise les événements de survol selon le type de zone
+ */
+function resetLabelsEvents() {
+    if (!APP.map) return;
+
+    
+    // Retirer TOUS les anciens listeners sur les couches France (vrais noms)
+    const possibleLayers = ['zones-france-fill', 'zones-france-line', 'zones-france-superior-line'];
+    possibleLayers.forEach(layer => {
+        if (APP.map.getLayer(layer)) {
+            try { APP.map.off('mousemove', layer); } catch(_) {}
+            try { APP.map.off('mouseleave', layer); } catch(_) {}
+
+        }
+    });
+    
+    // Ne PAS activer pour mediaposte (USL)
+    if (GLOBAL_STATE.currentZoneType === 'mediaposte') return;
+    
+    // Activer sur les bonnes couches
+    if (labelsEnabled) {
+        possibleLayers.forEach(layer => {
+            if (APP.map.getLayer(layer)) {
+                APP.map.on('mousemove', layer, handleZoneHover);
+                APP.map.on('mouseleave', layer, hideZoneLabel);
+
+            }
+        });
+    }
+}
+
+/**
+ * Gère le survol d'une zone
+ */
+function handleZoneHover(e) {
+    if (!labelsEnabled) return;
+    if (GLOBAL_STATE.currentZoneType === 'mediaposte') return;
+    if (!e.features || e.features.length === 0) return;
+    const properties = e.features[0].properties || {};
+
+    showZoneLabel(properties);
+}
+
+/**
+ * Affiche le label d'une zone
+ */
+function showZoneLabel(properties) {
+
+    
+    // Créer ou réutiliser l'élément
+    if (!currentLabelElement) {
+        currentLabelElement = document.createElement('div');
+        currentLabelElement.className = 'zone-label';
+        const container = document.getElementById('map-container') || document.body;
+        container.appendChild(currentLabelElement);
+    }
+    
+    // Formater le contenu selon le type (aligné sur Zecible V2)
+    let content = '';
+    switch (GLOBAL_STATE.currentZoneType) {
+        case 'iris':
+            content = `
+                <span class="zone-label-code">${properties.code || ''}</span>
+                <span class="zone-label-name">${properties.nom || ''}</span>
+            `;
+            break;
+        case 'commune':
+            content = `
+                <span class="zone-label-code">${properties.code || ''}</span>
+                <span class="zone-label-name">${properties.nom || ''}</span>
+            `;
+            break;
+        case 'code_postal':
+            // Pour les codes postaux, afficher la liste des villes
+            content = `
+                <span class="zone-label-code">${properties.code || ''}</span>
+                <span class="zone-label-name">${properties.nom || ''}</span>
+            `;
+            break;
+        case 'departement':
+            content = `
+                <span class="zone-label-code">${properties.code || ''}</span>
+                <span class="zone-label-name">${properties.nom || ''}</span>
+            `;
+            break;
+        default:
+            content = '';
+    }
+    
+    currentLabelElement.innerHTML = content;
+    currentLabelElement.classList.add('active');
+}
+
+/**
+ * Cache le label
+ */
+function hideZoneLabel() {
+    if (currentLabelElement) {
+        currentLabelElement.classList.remove('active');
+    }
+}
+
+// Exporter les fonctions
+window.toggleLabelsVisibility = toggleLabelsVisibility;
+window.resetLabelsEvents = resetLabelsEvents;
 
 /**
  * Mise à jour d'une source avec vérification
@@ -959,7 +1080,7 @@ function hideIsochrone() {
  * Création du marqueur du point de vente avec validation stricte
  */
 function createStoreMarker(coordinates, placeName) {
-    console.log('[MARKER] createStoreMarker appelé avec:', coordinates, placeName);
+
     
     // Validation stricte des coordonnées
     if (!coordinates || !Array.isArray(coordinates) || coordinates.length < 2) {
@@ -993,7 +1114,7 @@ function createStoreMarker(coordinates, placeName) {
         return;
     }
     
-    console.log('[MARKER] Coordonnées marqueur validées:', { lng, lat });
+
     
     // Supprimer l'ancien marqueur s'il existe
     const existingMarkers = document.getElementsByClassName('mapboxgl-marker');
@@ -1005,7 +1126,7 @@ function createStoreMarker(coordinates, placeName) {
             .setLngLat([lng, lat])
             .addTo(APP.map);
         
-        console.log(`[MARKER] Marqueur créé avec succès pour: ${placeName}`);
+
     } catch (error) {
         console.error('[MARKER ERROR] Erreur création marqueur:', error);
     }
@@ -1169,37 +1290,6 @@ window.fitMapToGeometry = fitMapToGeometry;
 window.hideNonUSLLayers = hideNonUSLLayers;
 window.debugSuperiorZones = debugSuperiorZones;
 
-/**
- * Active ou désactive l'affichage des libellés sur la carte
- * @param {boolean} show - true pour afficher, false pour masquer
- */
-function toggleLabelsVisibility(show) {
-    console.log('[MAP] Toggle labels:', show);
-    
-    if (!APP.map) {
-        console.warn('[MAP] Carte non initialisée');
-        return;
-    }
-    
-    // Layers de libellés à modifier
-    const labelLayers = [
-        'zones-usl-label',
-        'zones-france-label',
-        'zones-france-superior-label'
-    ];
-    
-    labelLayers.forEach(layerId => {
-        if (APP.map.getLayer(layerId)) {
-            APP.map.setLayoutProperty(
-                layerId,
-                'visibility',
-                show ? 'visible' : 'none'
-            );
-        }
-    });
-}
-
-// Exporter la fonction
-window.toggleLabelsVisibility = toggleLabelsVisibility;
+// Note: toggleLabelsVisibility est déjà définie plus haut (ligne 773) avec la gestion correcte de labelsEnabled
 
 console.log('✅ Module MAP-MANAGER Tract V2 chargé');

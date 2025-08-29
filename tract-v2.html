@@ -36,10 +36,12 @@
                 <span class="btn-text">Importer</span>
             </button>
             
-            <!-- Container de recherche -->
-            <div id="geocoder-container" class="search-container">
-                <!-- Le geocoder Mapbox sera inséré ici -->
-            </div>
+            <!-- Bouton Rechercher (comme Zecible V2) -->
+            <button id="search-button" class="top-bar-btn" onclick="if(window.openSearchPopup) openSearchPopup(); return false;" data-tooltip="Rechercher">
+                <span class="icon-container icon-20 icon-popup-search" id="search-icon"></span>
+                <span class="btn-text">Rechercher</span>
+                <span class="icon-container icon-20 icon-search-loader" id="search-loader" style="display:none;"></span>
+            </button>
             
             <!-- Bouton Validation déplacé dans un conteneur dédié -->
             
@@ -309,6 +311,51 @@
             </div>
         </div>
         
+        <!-- Popup Recherche -->
+        <div id="popup-search" class="popup">
+            <div class="popup-header" onmousedown="startDrag(event, 'popup-search')">
+                <h3 class="popup-title">
+                    <span class="icon-20 icon-popup-search"></span>
+                    <span id="search-popup-title-text">Rechercher des codes postaux</span>
+                </h3>
+                <button class="popup-close" onclick="closeSearchPopup(); return false;">
+                    <span class="icon-16 icon-croix"></span>
+                </button>
+            </div>
+            <div class="popup-content">
+                <div class="search-memory-section">
+                    <div class="search-memory-title">Zones sélectionnées :</div>
+                    <div id="search-memory-list">
+                        <div class="search-memory-empty">Aucune zone sélectionnée</div>
+                    </div>
+                </div>
+                <div class="search-input-container">
+                    <div class="search-input-wrapper">
+                        <button id="search-clear-btn" class="search-clear-button" onclick="clearSearch(); return false;" type="button" style="display: none;">
+                            <span class="icon-20 icon-search-clear"></span>
+                        </button>
+                        <input type="text" 
+                               id="search-input" 
+                               placeholder="Rechercher par code postal ou ville..." 
+                               oninput="handleSearchInput(event)">
+                        <button class="search-icon-button" onclick="forceSearch(); return false;" type="button">
+                            <span class="icon-20 icon-popup-search"></span>
+                        </button>
+                    </div>
+                    <div id="search-dropdown"></div>
+                </div>
+            </div>
+            <div class="popup-footer">
+                <button class="popup-btn popup-btn-secondary" type="button" onclick="closeSearchPopup(); return false;">
+                    Annuler
+                </button>
+                <button class="popup-btn popup-btn-primary" type="button" onclick="validateSearch(); return false;">
+                    <span class="icon-16 icon-coche"></span>
+                    Valider
+                </button>
+            </div>
+        </div>
+        
         <!-- Compteur de sélection -->
         <div id="selection-counter" class="selection-counter">
             <div class="counter-main">
@@ -440,6 +487,7 @@
     <script src="/RepWeb/Tract V2/js/tract-v2-selection-tools.js"></script>
     <script src="/RepWeb/Tract V2/js/tract-v2-conversion-engine.js"></script>
     <script src="/RepWeb/Tract V2/js/tract-v2-import-manager.js"></script>
+    <script src="/RepWeb/Tract V2/js/tract-v2-search-manager.js"></script>
     <script src="/RepWeb/Tract V2/js/tract-v2-main.js"></script>
     
     <script>

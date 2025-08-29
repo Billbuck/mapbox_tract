@@ -11,7 +11,7 @@ let isInitializingFromWebDev = false;
  */
 function initializeApp() {
     if (isAppInitialized) {
-        console.log('[INIT] Application déjà initialisée, abandon');
+
         return;
     }
     
@@ -96,7 +96,7 @@ function initializeState() {
         updateActionButtonsVisibility();
     }
     
-    console.log('[STATE] État global initialisé');
+
 }
 
 // ===== CONFIGURATION DES ÉVÉNEMENTS UI =====
@@ -109,14 +109,14 @@ function setupUIEvents() {
     const zoneTypeSelector = document.getElementById('zone-type');
     if (zoneTypeSelector) {
         zoneTypeSelector.addEventListener('change', handleZoneTypeChange);
-        console.log('[EVENTS] ✓ Événement sélecteur de type configuré');
+
     }
     
     // Bouton de validation
     const validateBtn = document.getElementById('validate-selection-btn');
     if (validateBtn) {
         validateBtn.addEventListener('click', validateTempSelection);
-        console.log('[EVENTS] ✓ Événement bouton validation configuré');
+
     }
     
     // Boutons d'outils
@@ -124,8 +124,23 @@ function setupUIEvents() {
     
     // Sliders et contrôles des popups
     setupPopupControlEvents();
+
+    // Initialiser la visibilité du bouton recherche (aligné Zecible)
+    if (window.updateSearchButtonVisibility) {
+        try { window.updateSearchButtonVisibility(); } catch(_) {}
+    }
     
-    console.log('[EVENTS] ✓ Tous les événements UI configurés');
+    // Restaurer l'état du switch des libellés
+    const labelsSwitch = document.getElementById('labels-switch');
+    if (labelsSwitch) {
+        const savedState = localStorage.getItem('tract-v2-show-labels') === 'true';
+        labelsSwitch.checked = savedState;
+        if (savedState && window.toggleLabelsVisibility) {
+            window.toggleLabelsVisibility(true);
+        }
+    }
+    
+
 }
 
 /**
@@ -152,7 +167,7 @@ function setupToolButtonEvents() {
         });
     });
     
-    console.log('[EVENTS] ✓ Événements boutons outils configurés');
+
 }
 
 /**
@@ -177,7 +192,7 @@ function setupPopupControlEvents() {
         timeRange.addEventListener('input', updateTimePreview);
     }
     
-    console.log('[EVENTS] ✓ Événements contrôles popup configurés');
+
 }
 
 // ===== INTÉGRATION AVEC WEBDEV =====
@@ -300,7 +315,7 @@ function InitialiserCarte(jsonData) {
  * Initialisation à partir de WebDev avec coordonnées (fonction alternative)
  */
 function initializeMapFromWebDev(lat, lng, address) {
-    console.log('[WEBDEV] Redirection vers InitialiserCarte pour compatibilité');
+
     InitialiserCarte(lat, lng, address);
 }
 
@@ -308,7 +323,7 @@ function initializeMapFromWebDev(lat, lng, address) {
  * Mise à jour de l'adresse depuis WebDev
  */
 function updateWebDevAddress(address) {
-    console.log('[WEBDEV] Mise à jour adresse:', address);
+
     // Cette fonction peut être utilisée pour synchroniser l'affichage
     // avec le champ d'adresse côté WebDev
 }
@@ -346,7 +361,6 @@ function getStudyDataForSave() {
         }
     };
     
-    console.log('[SAVE] Données d\'étude préparées:', studyData);
     return studyData;
 }
 
@@ -354,8 +368,6 @@ function getStudyDataForSave() {
  * Chargement d'une étude sauvegardée
  */
 async function loadStudy(studyData) {
-    console.log('=== CHARGEMENT ÉTUDE TRACT V2 ===');
-    console.log('[LOAD] Données reçues:', studyData);
     
     try {
         // Validation des données
@@ -699,7 +711,7 @@ window.resetApplication = resetApplication;
 
 // Fonction alternative pour WebDev
 window.InitialiserCarteAvecCoordonnees = function(lat, lng, adresse) {
-    console.log('[WEBDEV] InitialiserCarteAvecCoordonnees appelée directement');
+
     InitialiserCarte(lat, lng, adresse);
 };
 
