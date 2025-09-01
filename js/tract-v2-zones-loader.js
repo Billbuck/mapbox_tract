@@ -204,43 +204,109 @@ async function loadZonesByCodes(codes, onProgress = null) {
         
         if (isInUSLMode()) {
             // Import direct d'USL par codes
-            url = '/api/france/zones/codes';
-
-            response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type_zone: 'mediaposte',
-                    codes: codes
-                })
-            });
-            const data = await response.json();
-
-            if (data.success && data.data.zones) {
-                data.data.zones.forEach(zone => {
-                    if (validateZoneGeometry(zone)) {
-                        const usl = {
-                            id: zone.code,
-                            code: zone.code,
-                            geometry: zone.geometry,
-                            foyers: zone.foyers || 0,
-                            type: 'mediaposte'
-                        };
-                        // Ajouter au cache USL
-                        GLOBAL_STATE.uslCache.set(usl.id, usl);
-                        // Ajouter à la sélection USL
-                        GLOBAL_STATE.finalUSLSelection.set(usl.id, usl);
+            // Note: L'API /api/france/zones/codes n'existe pas, on utilise une approche différente
+            console.log('Import USL par codes - utilisation de la méthode alternative');
+            console.log('Codes à importer:', codes);
+            
+            // Stratégie optimisée : charger d'abord depuis le cache existant
+            // puis charger par régions si nécessaire
+            const codesSet = new Set(codes.map(c => String(c)));
+            let foundInCache = 0;
+            let remainingCodes = new Set(codesSet);
+            
+            // 1. Vérifier d'abord dans le cache existant
+            for (const [id, usl] of GLOBAL_STATE.uslCache) {
+                if (codesSet.has(id)) {
+                    if (!GLOBAL_STATE.finalUSLSelection.has(id)) {
+                        GLOBAL_STATE.finalUSLSelection.set(id, usl);
                         GLOBAL_STATE.totalSelectedFoyers += usl.foyers;
-                        results.success.push(usl.id);
-                    } else {
-                        results.notFound.push(zone.code);
+                        results.success.push(id);
+                        foundInCache++;
                     }
-                });
-                // Mettre à jour l'affichage
+                    remainingCodes.delete(id);
+                }
+            }
+            
+            console.log(`Import USL: ${foundInCache} trouvées dans le cache, ${remainingCodes.size} à charger`);
+            
+            if (remainingCodes.size === 0) {
+                // Toutes les USL sont déjà en cache
                 updateUSLDisplay();
                 updateSelectionDisplay();
                 updateSelectedZonesDisplay();
+                return results;
             }
+            
+            // 2. Pour les codes restants, charger par régions
+            // On charge plusieurs petites régions plutôt que toute la France
+            const regions = [
+                { name: 'Île-de-France', lat_min: 48.0, lat_max: 49.5, lng_min: 1.5, lng_max: 3.5 },
+                { name: 'Sud-Est', lat_min: 42.5, lat_max: 46.5, lng_min: 3.5, lng_max: 7.5 },
+                { name: 'Sud-Ouest', lat_min: 42.5, lat_max: 46.5, lng_min: -2.0, lng_max: 3.5 },
+                { name: 'Nord-Est', lat_min: 47.0, lat_max: 50.5, lng_min: 3.5, lng_max: 8.5 },
+                { name: 'Nord-Ouest', lat_min: 47.0, lat_max: 50.5, lng_min: -5.0, lng_max: 3.5 },
+                { name: 'Corse', lat_min: 41.3, lat_max: 43.1, lng_min: 8.5, lng_max: 9.6 }
+            ];
+            
+            // Charger les régions en séquence jusqu'à trouver tous les codes
+            for (const region of regions) {
+                if (remainingCodes.size === 0) break;
+                
+                console.log(`Chargement région ${region.name}...`);
+                url = '/api/zones/rectangle';
+                response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lat_min: region.lat_min,
+                        lat_max: region.lat_max,
+                        lng_min: region.lng_min,
+                        lng_max: region.lng_max
+                    })
+                });
+                
+                const data = await response.json();
+                console.log(`Région ${region.name}: ${data.success ? data.data.zones.length + ' zones' : 'Erreur'}`);
+                
+                if (data.success && data.data.zones) {
+                    // Traiter les zones de cette région
+                    data.data.zones.forEach(zone => {
+                        const zoneCode = String(zone.id || zone.code);
+                        if (remainingCodes.has(zoneCode) && validateZoneGeometry(zone)) {
+                            const usl = {
+                                id: zoneCode,
+                                code: zoneCode,
+                                geometry: zone.geometry,
+                                foyers: zone.foyers || 0,
+                                type: 'mediaposte'
+                            };
+                            // Ajouter au cache USL
+                            GLOBAL_STATE.uslCache.set(usl.id, usl);
+                            // Ajouter à la sélection USL
+                            GLOBAL_STATE.finalUSLSelection.set(usl.id, usl);
+                            GLOBAL_STATE.totalSelectedFoyers += usl.foyers;
+                            results.success.push(usl.id);
+                            remainingCodes.delete(zoneCode);
+                        }
+                    });
+                }
+            }
+            
+            console.log(`Import USL terminé: ${results.success.length} zones trouvées sur ${codes.length} demandées`);
+            
+            // Identifier les codes non trouvés
+            for (const code of remainingCodes) {
+                results.notFound.push(code);
+            }
+            
+            if (results.notFound.length > 0) {
+                console.warn(`${results.notFound.length} codes USL non trouvés:`, results.notFound);
+            }
+            
+            // Mettre à jour l'affichage
+            updateUSLDisplay();
+            updateSelectionDisplay();
+            updateSelectedZonesDisplay();
         } else {
             // Zones non-USL
             url = '/api/france/zones/codes';
