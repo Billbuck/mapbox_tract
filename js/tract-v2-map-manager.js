@@ -1138,12 +1138,66 @@ function createStoreMarker(coordinates, placeName) {
     const existingMarkers = document.getElementsByClassName('mapboxgl-marker');
     Array.from(existingMarkers).forEach(marker => marker.remove());
     
+    // Supprimer aussi la source/layer du marqueur dans le canvas
+    if (APP.map.getSource('store-marker')) {
+        if (APP.map.getLayer('store-marker-layer')) {
+            APP.map.removeLayer('store-marker-layer');
+        }
+        APP.map.removeSource('store-marker');
+    }
+    
     try {
-        // Créer le nouveau marqueur (violet thème projet)
+        // Créer le nouveau marqueur HTML (pour l'interaction)
         const marker = new mapboxgl.Marker({ color: (CONFIG && CONFIG.COLORS && CONFIG.COLORS.MARKER) ? CONFIG.COLORS.MARKER : '#C366F2' })
             .setLngLat([lng, lat])
             .addTo(APP.map);
         
+        // Ajouter aussi un marqueur dans le canvas (pour la capture)
+        APP.map.addSource('store-marker', {
+            type: 'geojson',
+            data: {
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: [lng, lat]
+                },
+                properties: {
+                    name: placeName || 'Point de vente'
+                }
+            }
+        });
+        
+        // Ajouter la couche du marqueur (invisible par défaut)
+        // Trouver la couche la plus haute pour placer le marqueur au-dessus
+        const layers = APP.map.getStyle().layers;
+        let topLayerId = null;
+        
+        // Chercher la dernière couche de type symbol ou la dernière couche tout court
+        for (let i = layers.length - 1; i >= 0; i--) {
+            const layer = layers[i];
+            if (layer.type === 'symbol' || i === layers.length - 1) {
+                topLayerId = layer.id;
+                break;
+            }
+        }
+        
+        // Ajouter la couche du marqueur
+        APP.map.addLayer({
+            id: 'store-marker-layer',
+            type: 'circle',
+            source: 'store-marker',
+            paint: {
+                'circle-radius': 10,  // Taille raisonnable
+                'circle-color': (CONFIG && CONFIG.COLORS && CONFIG.COLORS.MARKER) ? CONFIG.COLORS.MARKER : '#C366F2',  // Violet comme le marqueur HTML
+                'circle-stroke-color': '#FFFFFF',
+                'circle-stroke-width': 2,
+                'circle-opacity': 1,
+                'circle-stroke-opacity': 1
+            },
+            layout: {
+                'visibility': 'none' // Invisible par défaut
+            }
+        });  // Sans spécifier de position, il ira au-dessus
 
     } catch (error) {
         console.error('[MARKER ERROR] Erreur création marqueur:', error);

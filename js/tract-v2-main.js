@@ -844,7 +844,16 @@ window.CapturerCarte = function() {
             return "";
         }
         
-        // Forcer le rendu de la carte
+        // Forcer le rendu de la carte plusieurs fois
+        APP.map.triggerRepaint();
+        
+        // Attendre un peu pour le rendu du marqueur
+        const renderStart = Date.now();
+        while (Date.now() - renderStart < 50) {
+            // Petite pause de 50ms
+        }
+        
+        // Re-forcer le rendu
         APP.map.triggerRepaint();
         
         // Obtenir le contexte pour vérifier s'il est valide
@@ -860,8 +869,46 @@ window.CapturerCarte = function() {
             return "";
         }
         
-        // Convertir en base64 avec options de qualité
-        const imageBase64 = canvas.toDataURL('image/png', 1.0);
+        // Avant de convertir en base64, vérifier si on doit ajouter le marqueur
+        let imageBase64;
+        
+        if (APP.map.getSource('store-marker') && APP.map.getSource('store-marker')._data) {
+            // Récupérer les coordonnées du marqueur
+            const markerData = APP.map.getSource('store-marker')._data;
+            const coords = markerData.geometry.coordinates;
+            
+            // Convertir les coordonnées en pixels
+            const point = APP.map.project(coords);
+            
+            // Créer un canvas temporaire pour dessiner le marqueur
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // Copier l'image de la carte
+            tempCtx.drawImage(canvas, 0, 0);
+            
+            // Dessiner le marqueur
+            const scale = window.devicePixelRatio || 1;
+            const x = point.x * scale;
+            const y = point.y * scale;
+            
+            // Cercle violet avec bordure blanche
+            tempCtx.beginPath();
+            tempCtx.arc(x, y, 10 * scale, 0, 2 * Math.PI);
+            tempCtx.fillStyle = CONFIG.COLORS.MARKER || '#C366F2';
+            tempCtx.fill();
+            tempCtx.strokeStyle = '#FFFFFF';
+            tempCtx.lineWidth = 2 * scale;
+            tempCtx.stroke();
+            
+            // Convertir le canvas temporaire en base64
+            imageBase64 = tempCanvas.toDataURL('image/png', 1.0);
+        } else {
+            // Pas de marqueur, conversion normale
+            imageBase64 = canvas.toDataURL('image/png', 1.0);
+        }
         
         console.log('[CAPTURE] Image capturée, taille:', imageBase64.length);
         
@@ -958,10 +1005,107 @@ window.JavascriptRecentrerCapturerAfficher = function(aliasZTR) {
     return true;
 };
 
+/**
+ * Fonction synchrone pour WebDev - Capture simple sans temporisation
+ * @returns {string} Image en base64 ou chaîne vide si erreur
+ */
+window.RecupererCaptureCarte = function() {
+    console.log('[CAPTURE-WEBDEV] Récupération capture pour WebDev');
+    
+    // Vérifier que la carte existe
+    if ((!window.APP || !window.APP.map) && (!APP || !APP.map)) {
+        console.error('[CAPTURE-WEBDEV] Carte non disponible');
+        return "";
+    }
+    
+    try {
+        // Note: Le marqueur est maintenant dessiné directement sur le canvas dans CapturerCarte()
+        
+        // Forcer le rendu avant capture
+        if (window.APP && window.APP.map) {
+            window.APP.map.triggerRepaint();
+        } else if (APP && APP.map) {
+            APP.map.triggerRepaint();
+        }
+        
+        // Capturer directement la carte
+        // IMPORTANT: Appeler la vraie fonction de capture, pas celle de WebDev
+        var imageBase64 = "";
+        
+        // S'assurer d'appeler la bonne fonction
+        if (typeof window.CapturerCarte === 'function') {
+            // Vérifier qu'on n'est pas dans une boucle infinie
+            var functionString = window.CapturerCarte.toString();
+            if (functionString.indexOf('[CAPTURE] Capture de la carte') > -1) {
+                // C'est la bonne fonction
+                imageBase64 = window.CapturerCarte();
+            } else {
+                console.error('[CAPTURE-WEBDEV] window.CapturerCarte semble être la fonction WebDev, pas celle de Tract V2');
+                // Essayer d'accéder directement à la fonction globale
+                if (APP && APP.map) {
+                    // Appeler directement le code de capture
+                    var canvas = APP.map.getCanvas();
+                    if (canvas && canvas.width > 0 && canvas.height > 0) {
+                        APP.map.triggerRepaint();
+                        imageBase64 = canvas.toDataURL('image/png', 1.0);
+                    }
+                }
+            }
+        }
+        
+        if (imageBase64 && imageBase64 !== "") {
+            console.log('[CAPTURE-WEBDEV] Image capturée avec succès, taille:', imageBase64.length);
+            
+            // Note: Plus besoin de gérer la visibilité du marqueur
+            
+            return imageBase64;
+        } else {
+            console.error('[CAPTURE-WEBDEV] Capture vide ou échouée');
+            return "";
+        }
+    } catch (error) {
+        console.error('[CAPTURE-WEBDEV] Erreur lors de la capture:', error);
+        console.error('[CAPTURE-WEBDEV] Stack:', error.stack);
+        
+        // Note: Plus besoin de gérer la visibilité du marqueur
+        
+        return "";
+    }
+};
+
 console.log('✅ Module MAIN Tract V2 chargé');
 console.log('✅ InitialiserCarte exposée globalement:', typeof window.InitialiserCarte);
+/**
+ * Fonction simple pour WebDev - Effectue uniquement le recentrage instantané
+ * @returns {boolean} true si recentrage effectué
+ */
+window.EffectuerRecentrageInstantane = function() {
+    console.log('[RECENTRAGE] Recentrage instantané pour capture WebDev');
+    
+    if (!APP.map) {
+        console.error('[RECENTRAGE] Carte non disponible');
+        return false;
+    }
+    
+    // Recentrer immédiatement
+    if (window.RecentrerPourCapture) {
+        window.RecentrerPourCapture();
+        console.log('[RECENTRAGE] Recentrage instantané effectué');
+        
+        // Forcer le rendu
+        APP.map.triggerRepaint();
+        return true;
+    }
+    
+    return false;
+};
+
+
+
 console.log('✅ Fonctions de capture exposées:', {
     RecentrerPourCapture: typeof window.RecentrerPourCapture,
     CapturerCarte: typeof window.CapturerCarte,
-    JavascriptRecentrerCapturerAfficher: typeof window.JavascriptRecentrerCapturerAfficher
+    JavascriptRecentrerCapturerAfficher: typeof window.JavascriptRecentrerCapturerAfficher,
+    RecupererCaptureCarte: typeof window.RecupererCaptureCarte,
+    EffectuerRecentrageInstantane: typeof window.EffectuerRecentrageInstantane
 });
