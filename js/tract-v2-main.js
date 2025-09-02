@@ -716,5 +716,252 @@ window.InitialiserCarteAvecCoordonnees = function(lat, lng, adresse) {
     InitialiserCarte(lat, lng, adresse);
 };
 
+/**
+ * Force une capture de la carte après rendu complet
+ * Alternative qui attend le prochain frame de rendu
+ */
+window.CapturerCarteAvecAttente = function(callback) {
+    console.log('[CAPTURE-ALT] Début capture avec attente');
+    
+    if (!APP.map) {
+        console.error('[CAPTURE-ALT] Carte non disponible');
+        if (callback) callback("");
+        return;
+    }
+    
+    // Forcer un rendu complet
+    APP.map.triggerRepaint();
+    
+    // Attendre le prochain frame de rendu
+    APP.map.once('render', function() {
+        console.log('[CAPTURE-ALT] Événement render reçu');
+        
+        // Attendre encore un frame pour être sûr
+        requestAnimationFrame(function() {
+            console.log('[CAPTURE-ALT] Animation frame suivant');
+            
+            // Capturer maintenant
+            const imageBase64 = window.CapturerCarte();
+            
+            if (callback) {
+                callback(imageBase64);
+            }
+        });
+    });
+    
+    // Timeout de sécurité
+    setTimeout(function() {
+        console.warn('[CAPTURE-ALT] Timeout - capture forcée');
+        const imageBase64 = window.CapturerCarte();
+        if (callback) {
+            callback(imageBase64);
+        }
+    }, 2000);
+};
+
+// ===== FONCTIONS DE CAPTURE D'ÉCRAN POUR WEBDEV =====
+
+/**
+ * Recentre la carte pour une capture optimale
+ * Version instantanée sans animation
+ * Priorité : sélection > point de vente > vue France
+ * @returns {boolean} true si recentrage effectué
+ */
+window.RecentrerPourCapture = function() {
+    console.log('[CAPTURE] Recentrage instantané pour capture');
+    
+    if (!APP.map) return false;
+    
+    // Si des zones sont sélectionnées, recentrer dessus instantanément
+    if (GLOBAL_STATE.finalUSLSelection.size > 0 || GLOBAL_STATE.tempSelection.size > 0) {
+        // Calculer les bounds de la sélection
+        const boundsData = window.calculateSelectionBounds();
+        if (boundsData && boundsData.lat_min != null && boundsData.lat_max != null && 
+            boundsData.lng_min != null && boundsData.lng_max != null) {
+            
+            console.log('[CAPTURE] Recentrage instantané sur la sélection');
+            
+            // Convertir au format attendu par Mapbox : [[lng_min, lat_min], [lng_max, lat_max]]
+            const mapboxBounds = [
+                [boundsData.lng_min, boundsData.lat_min],
+                [boundsData.lng_max, boundsData.lat_max]
+            ];
+            
+            APP.map.fitBounds(mapboxBounds, {
+                padding: 30,      // Padding réduit pour cadrage serré
+                duration: 0,      // Pas d'animation
+                animate: false,   // Force pas d'animation
+                maxZoom: 15      // Limite de zoom pour éviter trop proche
+            });
+            return true;
+        }
+    }
+    
+    // Sinon, recentrer sur le point de vente instantanément
+    if (GLOBAL_STATE.storeLocation) {
+        console.log('[CAPTURE] Recentrage instantané sur le point de vente');
+        APP.map.jumpTo({
+            center: GLOBAL_STATE.storeLocation,
+            zoom: 14,
+            animate: false  // Pas d'animation
+        });
+        return true;
+    }
+    
+    // Par défaut, vue France instantanée
+    console.log('[CAPTURE] Recentrage instantané sur la France');
+    APP.map.jumpTo({
+        center: [2.213749, 46.227638],
+        zoom: 5.5,
+        animate: false  // Pas d'animation
+    });
+    return true;
+};
+
+/**
+ * Capture la carte et retourne une image base64
+ * @returns {string} Image en base64 (data:image/png;base64,...)
+ */
+window.CapturerCarte = function() {
+    console.log('[CAPTURE] Capture de la carte');
+    
+    if (!APP.map) {
+        console.error('[CAPTURE] Carte non disponible');
+        return "";
+    }
+    
+    try {
+        // Obtenir le canvas de la carte
+        const canvas = APP.map.getCanvas();
+        
+        // Vérifications du canvas
+        console.log('[CAPTURE] Canvas dimensions:', canvas.width, 'x', canvas.height);
+        console.log('[CAPTURE] Canvas style:', canvas.style.width, 'x', canvas.style.height);
+        
+        // Vérifier si le canvas a une taille valide
+        if (canvas.width === 0 || canvas.height === 0) {
+            console.error('[CAPTURE] Canvas a une taille nulle');
+            return "";
+        }
+        
+        // Forcer le rendu de la carte
+        APP.map.triggerRepaint();
+        
+        // Obtenir le contexte pour vérifier s'il est valide
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) {
+            console.error('[CAPTURE] Contexte WebGL non disponible');
+            return "";
+        }
+        
+        // Vérifier si le contexte WebGL est perdu
+        if (gl.isContextLost && gl.isContextLost()) {
+            console.error('[CAPTURE] Contexte WebGL perdu');
+            return "";
+        }
+        
+        // Convertir en base64 avec options de qualité
+        const imageBase64 = canvas.toDataURL('image/png', 1.0);
+        
+        console.log('[CAPTURE] Image capturée, taille:', imageBase64.length);
+        
+        // Vérifier si l'image n'est pas vide (une image PNG vide fait environ 1000-2000 octets)
+        if (imageBase64.length < 5000) {
+            console.warn('[CAPTURE] Image suspecte (trop petite), peut-être vide');
+        }
+        
+        return imageBase64;
+        
+    } catch (error) {
+        console.error('[CAPTURE] Erreur lors de la capture:', error);
+        return "";
+    }
+};
+
+/**
+ * Fonction appelée par WebDev pour recentrer, capturer et afficher
+ * @param {string} aliasZTR - L'alias de la Zone de Texte Riche WebDev
+ */
+window.JavascriptRecentrerCapturerAfficher = function(aliasZTR) {
+    console.log('[CAPTURE-AUTO] Début avec alias ZTR:', aliasZTR);
+    
+    if (!APP.map) {
+        console.error('[CAPTURE-AUTO] Carte non disponible');
+        return false;
+    }
+    
+    // 1. Recentrer instantanément
+    if (window.RecentrerPourCapture) {
+        window.RecentrerPourCapture();
+        console.log('[CAPTURE-AUTO] Recentrage effectué');
+    }
+    
+    // 2. Attendre que le recentrage soit terminé et capturer
+    // Comme le recentrage est instantané, on attend juste le prochain render
+    APP.map.once('render', function() {
+        console.log('[CAPTURE-AUTO] Événement render après recentrage');
+        
+        // Attendre un frame supplémentaire pour être sûr
+        requestAnimationFrame(function() {
+            console.log('[CAPTURE-AUTO] Frame suivant, capture en cours');
+            
+            // Forcer le rendu
+            APP.map.triggerRepaint();
+            
+            // Capturer maintenant
+            var imageBase64 = window.CapturerCarte();
+            
+            if (imageBase64 && imageBase64 !== "") {
+                console.log('[CAPTURE-AUTO] Image capturée avec succès');
+                
+                // Sauvegarder dans la variable WebDev
+                if (window.WebDevBridge) {
+                    WebDevBridge.set('sImageCarte', imageBase64);
+                    console.log('[CAPTURE-AUTO] Image sauvegardée dans sImageCarte');
+                }
+                
+                // 3. Afficher dans la ZTR
+                if (aliasZTR) {
+                    // HTML adaptatif pour la ZTR
+                    var htmlImage = '<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden;">' +
+                                   '<img src="' + imageBase64 + '" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; border: 2px solid #ddd; border-radius: 8px;" />' +
+                                   '</div>';
+                    
+                    // Obtenir l'ID réel de la ZTR
+                    var idZTR = aliasZTR;
+                    var elementZTR = document.getElementById(idZTR);
+                    
+                    if (elementZTR) {
+                        elementZTR.innerHTML = htmlImage;
+                        console.log('[CAPTURE-AUTO] Image affichée dans la ZTR');
+                    } else {
+                        console.error('[CAPTURE-AUTO] ZTR non trouvée avec ID:', idZTR);
+                    }
+                }
+            } else {
+                console.error('[CAPTURE-AUTO] Échec de la capture');
+            }
+        });
+    });
+    
+    // Timeout de sécurité au cas où l'événement render ne se déclenche pas
+    setTimeout(function() {
+        if (!APP.map._renderTaskQueue || APP.map._renderTaskQueue.length === 0) {
+            console.warn('[CAPTURE-AUTO] Timeout - forçage de la capture');
+            var imageBase64 = window.CapturerCarte();
+            if (imageBase64 && window.WebDevBridge) {
+                WebDevBridge.set('sImageCarte', imageBase64);
+            }
+        }
+    }, 1000);
+    
+    return true;
+};
+
 console.log('✅ Module MAIN Tract V2 chargé');
 console.log('✅ InitialiserCarte exposée globalement:', typeof window.InitialiserCarte);
+console.log('✅ Fonctions de capture exposées:', {
+    RecentrerPourCapture: typeof window.RecentrerPourCapture,
+    CapturerCarte: typeof window.CapturerCarte,
+    JavascriptRecentrerCapturerAfficher: typeof window.JavascriptRecentrerCapturerAfficher
+});

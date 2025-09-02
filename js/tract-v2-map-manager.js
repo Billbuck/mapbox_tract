@@ -18,7 +18,8 @@ function initMap() {
         maxBounds: CONFIG.MAP_CONFIG.maxBounds,
         dragRotate: false,
         pitchWithRotate: false,
-        touchZoomRotate: false
+        touchZoomRotate: false,
+        preserveDrawingBuffer: true  // Nécessaire pour capturer la carte
     });
     
     APP.map.keyboard.disableRotation();
