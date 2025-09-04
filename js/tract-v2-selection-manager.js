@@ -112,8 +112,14 @@ function selectZonesInBox(bbox) {
 function removeZonesInBox(bbox) {
     if (!APP.map) return;
     
-    const layerId = isInUSLMode() ? 'zones-usl-fill' : 'zones-france-fill';
-    const features = APP.map.queryRenderedFeatures(bbox, { layers: [layerId] });
+    // IMPORTANT : Chercher dans les deux couches (fill et selected) car les zones sélectionnées 
+    // sont masquées de la couche fill
+    const fillLayerId = isInUSLMode() ? 'zones-usl-fill' : 'zones-france-fill';
+    const selectedLayerId = isInUSLMode() ? 'zones-usl-selected' : 'zones-france-selected';
+    
+    const features = APP.map.queryRenderedFeatures(bbox, { 
+        layers: [fillLayerId, selectedLayerId] 
+    });
     
     if (features.length === 0) return;
     

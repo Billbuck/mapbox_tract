@@ -30,9 +30,24 @@ function initMap() {
     }
     
     APP.map.on('load', () => {
-
+        console.log('[MAP] Carte chargée');
         showStatus('Carte chargée - Saisissez une adresse pour commencer', 'success');
         setupMapEvents();
+        
+        
+        // Logger le zoom et l'épaisseur des traits
+        const logZoomAndThickness = () => {
+            const zoom = APP.map.getZoom();
+            // Calcul de l'épaisseur avec interpolation linéaire entre zoom 9 (0.2px) et zoom 15 (1.5px)
+            const thickness = Math.min(1.5, Math.max(0.2, 0.2 + (zoom - 9) * (1.5 - 0.2) / (15 - 9)));
+            console.log(`[ZOOM] Niveau: ${zoom.toFixed(2)} | Épaisseur contour: ${thickness.toFixed(2)}px`);
+        };
+        
+        // Logger au chargement
+        logZoomAndThickness();
+        
+        // Logger à chaque changement de zoom
+        APP.map.on('zoom', logZoomAndThickness);
         // Debug : lister toutes les couches disponibles
         try {
             const style = APP.map.getStyle && APP.map.getStyle();
@@ -453,6 +468,11 @@ function updateUSLDisplay() {
     
     if (!APP.map.getLayer('zones-usl-fill')) {
         createUSLLayers();
+    } else {
+        // Si les layers existent déjà, s'assurer que les événements sont attachés
+        setupZoneEvents('zones-usl-fill');
+        setupZoneEvents('zones-usl-line');
+        setupZoneEvents('zones-usl-selected');
     }
     
     // IMPORTANT : S'assurer que tous les layers USL sont visibles
@@ -475,9 +495,6 @@ function updateUSLDisplay() {
     }
     
     updateUSLColors();
-    
-    // IMPORTANT : Configurer les événements après l'affichage
-    setupZoneEvents('zones-usl-fill');
 }
 
 /**
@@ -585,6 +602,11 @@ function updateFranceZonesDisplay() {
     
     if (!APP.map.getLayer('zones-france-fill')) {
         createFranceLayers();
+    } else {
+        // Si les layers existent déjà, s'assurer que les événements sont attachés
+        setupZoneEvents('zones-france-fill');
+        setupZoneEvents('zones-france-line');
+        setupZoneEvents('zones-france-selected');
     }
     
     // IMPORTANT : S'assurer que les layers France sont visibles
@@ -619,9 +641,6 @@ function updateFranceZonesDisplay() {
     
     updateFranceColors();
     
-    // IMPORTANT : Configurer les événements après l'affichage
-    setupZoneEvents('zones-france-fill');
-    
     // Réinitialiser les événements de survol si les labels sont activés
     if (typeof window.resetLabelsEvents === 'function') {
         window.resetLabelsEvents();
@@ -652,7 +671,13 @@ function createUSLLayers() {
         source: 'zones-usl',
         paint: {
             'line-color': CONFIG.COLORS.DEFAULT_ZONE_OUTLINE,
-            'line-width': 1,
+            'line-width': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                9, 0.2,     // zoom 9 → épaisseur 0.2px
+                15, 1.5     // zoom 15 → épaisseur 1.5px (max)
+            ],
             'line-opacity': 1  // Opacité complète comme Zecible
         }
     });
@@ -664,26 +689,30 @@ function createUSLLayers() {
         source: 'zones-usl',
         paint: {
             'fill-color': CONFIG.COLORS.SELECTED_ZONE,
-            'fill-opacity': 0.6
+            'fill-opacity': 0.4,  // Réduit pour plus de transparence
+            'fill-outline-color': CONFIG.COLORS.SELECTED_ZONE,  // Même couleur pour éviter les bordures
+            'fill-antialias': false  // Désactiver l'antialiasing
         },
         filter: ['in', 'id', '']
     });
     
-    // Layer sélection contour
+    // Layer sélection contour - INVISIBLE
     APP.map.addLayer({
         id: 'zones-usl-selected-line',
         type: 'line',
         source: 'zones-usl',
         paint: {
             'line-color': CONFIG.COLORS.SELECTED_ZONE,
-            'line-width': 2,
-            'line-opacity': 1  // Opacité complète comme Zecible
+            'line-width': 0,  // Pas de contour
+            'line-opacity': 0  // Complètement invisible
         },
         filter: ['in', 'id', '']
     });
     
-    // IMPORTANT : Configurer les événements de clic
+    // IMPORTANT : Configurer les événements de clic sur TOUTES les couches cliquables
     setupZoneEvents('zones-usl-fill');
+    setupZoneEvents('zones-usl-line');
+    setupZoneEvents('zones-usl-selected');  // Pour pouvoir désélectionner
 }
 
 /**
@@ -705,14 +734,20 @@ function createFranceLayers() {
         }
     });
     
-    // Zones principales (contour violet clair)
+    // Zones principales (contour violet clair avec largeur adaptative)
     APP.map.addLayer({
         id: 'zones-france-line',
         type: 'line',
         source: 'zones-france',
         paint: {
             'line-color': CONFIG.COLORS.DEFAULT_ZONE_OUTLINE,
-            'line-width': 1,
+            'line-width': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                9, 0.2,     // zoom 9 → épaisseur 0.2px
+                15, 1.5     // zoom 15 → épaisseur 1.5px (max)
+            ],
             'line-opacity': 1  // Opacité complète comme Zecible
         }
     });
@@ -724,20 +759,22 @@ function createFranceLayers() {
         source: 'zones-france',
         paint: {
             'fill-color': CONFIG.COLORS.SELECTED_ZONE,
-            'fill-opacity': 0.6
+            'fill-opacity': 0.4,  // Réduit pour plus de transparence
+            'fill-outline-color': CONFIG.COLORS.SELECTED_ZONE,  // Même couleur pour éviter les bordures
+            'fill-antialias': false  // Désactiver l'antialiasing
         },
         filter: ['in', 'id', '']
     });
     
-    // Layer sélection contour
+    // Layer sélection contour - INVISIBLE
     APP.map.addLayer({
         id: 'zones-france-selected-line',
         type: 'line',
         source: 'zones-france',
         paint: {
             'line-color': CONFIG.COLORS.SELECTED_ZONE,
-            'line-width': 2,
-            'line-opacity': 1
+            'line-width': 0,  // Pas de contour
+            'line-opacity': 0  // Complètement invisible
         },
         filter: ['in', 'id', '']
     });
@@ -756,8 +793,10 @@ function createFranceLayers() {
         }
     });
     
-    // IMPORTANT : Configurer les événements de clic
+    // IMPORTANT : Configurer les événements de clic sur TOUTES les couches cliquables
     setupZoneEvents('zones-france-fill');
+    setupZoneEvents('zones-france-line');
+    setupZoneEvents('zones-france-selected');  // Pour pouvoir désélectionner
 }
 
 // === GESTION DES LABELS AU SURVOL ===
@@ -917,13 +956,20 @@ function updateUSLColors() {
     const selectedIds = Array.from(GLOBAL_STATE.finalUSLSelection.keys());
     
     if (selectedIds.length === 0) {
-        // Aucune sélection
+        // Aucune sélection - afficher toutes les zones dans les couches inférieures
         APP.map.setFilter('zones-usl-selected', ['in', 'id', '']);
         APP.map.setFilter('zones-usl-selected-line', ['in', 'id', '']);
+        APP.map.setFilter('zones-usl-fill', null);  // Retirer le filtre
+        APP.map.setFilter('zones-usl-line', null);  // Retirer le filtre
     } else {
         // Appliquer le filtre pour les zones sélectionnées
         APP.map.setFilter('zones-usl-selected', ['in', 'id', ...selectedIds]);
         APP.map.setFilter('zones-usl-selected-line', ['in', 'id', ...selectedIds]);
+        
+        // IMPORTANT : Masquer les zones sélectionnées des couches inférieures
+        // pour éviter la superposition
+        APP.map.setFilter('zones-usl-fill', ['!', ['in', ['get', 'id'], ['literal', selectedIds]]]);
+        APP.map.setFilter('zones-usl-line', ['!', ['in', ['get', 'id'], ['literal', selectedIds]]]);
     }
 }
 
@@ -937,13 +983,20 @@ function updateFranceColors() {
     const selectedIds = Array.from(GLOBAL_STATE.tempSelection.keys());
     
     if (selectedIds.length === 0) {
-        // Aucune sélection
+        // Aucune sélection - afficher toutes les zones dans les couches inférieures
         APP.map.setFilter('zones-france-selected', ['in', 'id', '']);
         APP.map.setFilter('zones-france-selected-line', ['in', 'id', '']);
+        APP.map.setFilter('zones-france-fill', null);  // Retirer le filtre
+        APP.map.setFilter('zones-france-line', null);  // Retirer le filtre
     } else {
         // Appliquer le filtre pour les zones sélectionnées
         APP.map.setFilter('zones-france-selected', ['in', 'id', ...selectedIds]);
         APP.map.setFilter('zones-france-selected-line', ['in', 'id', ...selectedIds]);
+        
+        // IMPORTANT : Masquer les zones sélectionnées des couches inférieures
+        // pour éviter la superposition
+        APP.map.setFilter('zones-france-fill', ['!', ['in', ['get', 'id'], ['literal', selectedIds]]]);
+        APP.map.setFilter('zones-france-line', ['!', ['in', ['get', 'id'], ['literal', selectedIds]]]);
     }
 }
 
@@ -962,23 +1015,50 @@ function updateSelectedZonesDisplay() {
 
 /**
  * Configuration des événements sur les zones
+ * @param {string} layerId - ID de la couche
+ * @param {boolean} changeCursor - Si true, change le curseur au survol (par défaut: true)
  */
-function setupZoneEvents(layerId) {
+function setupZoneEvents(layerId, changeCursor = true) {
+    // Vérifier que la couche existe
+    if (!APP.map.getLayer(layerId)) {
+        console.warn(`[EVENTS] Couche ${layerId} introuvable, impossible d'attacher les événements`);
+        return;
+    }
+    
     // Nettoyer les anciens événements
     APP.map.off('click', layerId, handleZoneClick);
     APP.map.off('mouseenter', layerId);
     APP.map.off('mouseleave', layerId);
+    APP.map.off('mousemove', layerId);
     
-    // Ajouter les nouveaux événements
+    // Ajouter l'événement de clic
     APP.map.on('click', layerId, handleZoneClick);
     
-    APP.map.on('mouseenter', layerId, () => {
-        APP.map.getCanvas().style.cursor = 'pointer';
-    });
-    
-    APP.map.on('mouseleave', layerId, () => {
-        APP.map.getCanvas().style.cursor = '';
-    });
+    // Ajouter les événements de curseur si demandé
+    if (changeCursor) {
+        // Initialiser le set global des couches survolées si nécessaire
+        if (!GLOBAL_STATE.__hoveredInteractiveLayers) {
+            GLOBAL_STATE.__hoveredInteractiveLayers = new Set();
+        }
+        
+        APP.map.on('mouseenter', layerId, () => {
+            GLOBAL_STATE.__hoveredInteractiveLayers.add(layerId);
+            APP.map.getCanvas().style.cursor = 'pointer';
+        });
+        
+        // Renforcer le maintien du curseur pendant le déplacement sur la couche
+        APP.map.on('mousemove', layerId, () => {
+            APP.map.getCanvas().style.cursor = 'pointer';
+        });
+        
+        APP.map.on('mouseleave', layerId, () => {
+            GLOBAL_STATE.__hoveredInteractiveLayers.delete(layerId);
+            // Ne réinitialiser le curseur que si plus aucune couche interactive n'est survolée
+            if (GLOBAL_STATE.__hoveredInteractiveLayers.size === 0) {
+                APP.map.getCanvas().style.cursor = '';
+            }
+        });
+    }
 }
 
 // ===== GESTION DES OUTILS VISUELS =====
