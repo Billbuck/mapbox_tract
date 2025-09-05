@@ -675,7 +675,7 @@ function createUSLLayers() {
                 'interpolate',
                 ['linear'],
                 ['zoom'],
-                9, 0.1,     // zoom 9 → épaisseur 0.1px
+                9, 0.01,     // zoom 9 → épaisseur 0.1px
                 15, 1.7     // zoom 15 → épaisseur 1.7px (max)
             ],
             'line-opacity': 1  // Opacité complète comme Zecible
@@ -693,8 +693,8 @@ function createUSLLayers() {
                 'interpolate',
                 ['linear'],
                 ['zoom'],
-                9, 0.7,       // zoom 9 → opacité 0,8 (opaque)
-                14, 0.2     // zoom 15 → opacité 0.3 (plus transparent)
+                9, 0.9,       // zoom 9 → opacité 0.9 (opaque)
+                15, 0.3     // zoom 15 → opacité 0.3 (plus transparent)
             ],
             'fill-outline-color': CONFIG.COLORS.SELECTED_ZONE,  // Même couleur pour éviter les bordures
             'fill-antialias': false  // Désactiver l'antialiasing
@@ -765,7 +765,7 @@ function createFranceLayers() {
         source: 'zones-france',
         paint: {
             'fill-color': CONFIG.COLORS.SELECTED_ZONE,
-            'fill-opacity': 0.4,  // Réduit pour plus de transparence
+            'fill-opacity': 0.6,  // Réduit pour plus de transparence
             'fill-outline-color': CONFIG.COLORS.SELECTED_ZONE,  // Même couleur pour éviter les bordures
             'fill-antialias': false  // Désactiver l'antialiasing
         },
