@@ -664,7 +664,7 @@ function createUSLLayers() {
         }
     });
     
-    // Layer de contour (violet clair comme Zecible)
+    // Layer de contour 
     APP.map.addLayer({
         id: 'zones-usl-line',
         type: 'line',
@@ -675,8 +675,8 @@ function createUSLLayers() {
                 'interpolate',
                 ['linear'],
                 ['zoom'],
-                9, 0.2,     // zoom 9 → épaisseur 0.2px
-                15, 1.5     // zoom 15 → épaisseur 1.5px (max)
+                9, 0.1,     // zoom 9 → épaisseur 0.1px
+                15, 1.7     // zoom 15 → épaisseur 1.7px (max)
             ],
             'line-opacity': 1  // Opacité complète comme Zecible
         }
@@ -689,7 +689,13 @@ function createUSLLayers() {
         source: 'zones-usl',
         paint: {
             'fill-color': CONFIG.COLORS.SELECTED_ZONE,
-            'fill-opacity': 0.4,  // Réduit pour plus de transparence
+            'fill-opacity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                9, 0.7,       // zoom 9 → opacité 0,8 (opaque)
+                14, 0.2     // zoom 15 → opacité 0.3 (plus transparent)
+            ],
             'fill-outline-color': CONFIG.COLORS.SELECTED_ZONE,  // Même couleur pour éviter les bordures
             'fill-antialias': false  // Désactiver l'antialiasing
         },
