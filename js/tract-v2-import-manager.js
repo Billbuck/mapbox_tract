@@ -361,6 +361,12 @@ async function importUSLCodes(codes, importMode = 'add') {
             
             updateSelectionDisplay();
             updateSelectedZonesDisplay();
+
+            // Recentrer la carte sur la sélection courante (hors mode remove)
+            if (importMode !== 'remove') {
+                GLOBAL_STATE.suppressMoveLoad = true;
+                recenterOnSelection();
+            }
         } else {
             showStatus('Aucune zone USL trouvée', 'warning');
         }
@@ -408,6 +414,12 @@ async function importNonUSLCodes(codes, importMode = 'add') {
             setTimeout(() => {
                 showStatus('Cliquez sur "Valider la sélection" pour convertir en USL', 'warning');
             }, 2000);
+
+            // Recentrer la carte sur la sélection courante (hors mode remove)
+            if (importMode !== 'remove') {
+                GLOBAL_STATE.suppressMoveLoad = true;
+                recenterOnSelection();
+            }
             
         } else {
             showStatus(`Aucun ${zoneConfig.label} trouvé`, 'warning');
@@ -422,6 +434,8 @@ async function importNonUSLCodes(codes, importMode = 'add') {
         showStatus('Erreur lors de l\'import', 'error');
     }
 }
+
+// Suppression de la fonction personnalisée de recentrage; on utilise recenterOnSelection
 
 // ===== INITIALISATION DES ÉVÉNEMENTS =====
 

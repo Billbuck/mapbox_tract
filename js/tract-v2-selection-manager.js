@@ -2,6 +2,9 @@
 
 // ===== SÉLECTION PAR CLIC =====
 
+// Garde anti double-traitement de clic USL (évite doublons quand plusieurs layers déclenchent)
+let __lastUSLClick = { time: 0, id: null };
+
 /**
  * Gestion du clic sur une zone
  */
@@ -15,6 +18,25 @@ function handleZoneClick(e) {
     const zoneId = feature.properties.id || feature.properties.code;
     
     if (isInUSLMode()) {
+        // Si plusieurs USL sont sous le point cliqué, ne rien faire (clic ambigu en zone de chevauchement)
+        try {
+            const featuresAtPoint = APP.map.queryRenderedFeatures(e.point, { layers: ['zones-usl-fill', 'zones-usl-selected'] });
+            const idsAtPoint = new Set(
+                (featuresAtPoint || [])
+                    .map(f => (f && f.properties) ? f.properties.id : null)
+                    .filter(Boolean)
+            );
+            if (idsAtPoint.size > 1) {
+                showStatus('Plusieurs USL se chevauchent ici. Clic ignoré.', 'warning');
+                return;
+            }
+        } catch (_) {}
+        // Anti-doublon: si même zone cliquée dans une fenêtre très courte, ignorer
+        const now = Date.now();
+        if (__lastUSLClick.id === zoneId && (now - __lastUSLClick.time) < 250) {
+            return;
+        }
+        __lastUSLClick = { time: now, id: zoneId };
         handleUSLZoneClick(zoneId, feature);
     } else {
         handleFranceZoneClick(zoneId, feature);
@@ -307,6 +329,9 @@ function selectZonesByCodes(codes, zonesData) {
     updateSelectionDisplay();
     updateSelectedZonesDisplay();
 }
+
+// Suppression de l'ancien blocage global de chevauchement USL :
+// la prévention se fait désormais seulement au point de clic (zone de recouvrement).
 
 // ===== NETTOYAGE =====
 

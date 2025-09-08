@@ -438,6 +438,18 @@ function recenterOnSelection(padding = 60) {
             return;
         }
         const bbox = [bounds.lng_min, bounds.lat_min, bounds.lng_max, bounds.lat_max];
+        // Empêcher le chargement automatique pendant l'animation, puis forcer une mise à jour à la fin
+        try {
+            GLOBAL_STATE.suppressMoveLoad = true;
+            if (APP.map && typeof APP.map.once === 'function') {
+                APP.map.once('moveend', () => {
+                    try {
+                        updateMapWithAllCachedZones();
+                        updateSelectedZonesDisplay();
+                    } catch (_) {}
+                });
+            }
+        } catch (_) {}
         // Calculer la caméra cible puis quantifier le zoom par pas de 0,25 pour une expérience cohérente
         if (typeof APP.map.cameraForBounds === 'function') {
             const camera = APP.map.cameraForBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], {

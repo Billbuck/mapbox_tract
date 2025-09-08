@@ -29,6 +29,11 @@ function initMap() {
         APP.map.scrollZoom.disable();
     }
     
+    // Désactiver le zoom au double-clic
+    if (APP.map.doubleClickZoom) {
+        APP.map.doubleClickZoom.disable();
+    }
+    
     APP.map.on('load', () => {
         console.log('[MAP] Carte chargée');
         showStatus('Carte chargée - Saisissez une adresse pour commencer', 'success');
@@ -758,31 +763,37 @@ function createFranceLayers() {
         }
     });
     
-    // Layer sélection remplissage
+    // Source dédiée aux zones sélectionnées France (non filtrée par viewport)
+    if (!APP.map.getSource('zones-france-selected-source')) {
+        APP.map.addSource('zones-france-selected-source', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] }
+        });
+    }
+    
+    // Layer sélection remplissage (utilise la source dédiée)
     APP.map.addLayer({
         id: 'zones-france-selected',
         type: 'fill',
-        source: 'zones-france',
+        source: 'zones-france-selected-source',
         paint: {
             'fill-color': CONFIG.COLORS.SELECTED_ZONE,
-            'fill-opacity': 0.6,  // Réduit pour plus de transparence
-            'fill-outline-color': CONFIG.COLORS.SELECTED_ZONE,  // Même couleur pour éviter les bordures
-            'fill-antialias': false  // Désactiver l'antialiasing
-        },
-        filter: ['in', 'id', '']
+            'fill-opacity': 0.6,
+            'fill-outline-color': CONFIG.COLORS.SELECTED_ZONE,
+            'fill-antialias': false
+        }
     });
     
     // Layer sélection contour - INVISIBLE
     APP.map.addLayer({
         id: 'zones-france-selected-line',
         type: 'line',
-        source: 'zones-france',
+        source: 'zones-france-selected-source',
         paint: {
             'line-color': CONFIG.COLORS.SELECTED_ZONE,
-            'line-width': 0,  // Pas de contour
-            'line-opacity': 0  // Complètement invisible
-        },
-        filter: ['in', 'id', '']
+            'line-width': 0,
+            'line-opacity': 0
+        }
     });
     
     // LAYER SUPÉRIEUR EN DERNIER (comme Zecible) - Contours gris pointillés
@@ -988,19 +999,28 @@ function updateFranceColors() {
     // Mettre à jour les filtres des layers de sélection
     const selectedIds = Array.from(GLOBAL_STATE.tempSelection.keys());
     
+    // Mettre à jour la source dédiée pour la sélection (non filtrée par viewport)
+    try {
+        const features = selectedIds.map(id => {
+            const zone = GLOBAL_STATE.currentZonesCache.get(id);
+            if (!zone || !zone.geometry) return null;
+            return {
+                type: 'Feature',
+                properties: { id: id, code: zone.code || id, nom: zone.nom || '' },
+                geometry: zone.geometry
+            };
+        }).filter(f => f !== null);
+        const source = APP.map.getSource('zones-france-selected-source');
+        if (source) {
+            source.setData({ type: 'FeatureCollection', features });
+        }
+    } catch (_) {}
+
+    // Couches inférieures: masquer les sélectionnées pour éviter la double superposition
     if (selectedIds.length === 0) {
-        // Aucune sélection - afficher toutes les zones dans les couches inférieures
-        APP.map.setFilter('zones-france-selected', ['in', 'id', '']);
-        APP.map.setFilter('zones-france-selected-line', ['in', 'id', '']);
-        APP.map.setFilter('zones-france-fill', null);  // Retirer le filtre
-        APP.map.setFilter('zones-france-line', null);  // Retirer le filtre
+        APP.map.setFilter('zones-france-fill', null);
+        APP.map.setFilter('zones-france-line', null);
     } else {
-        // Appliquer le filtre pour les zones sélectionnées
-        APP.map.setFilter('zones-france-selected', ['in', 'id', ...selectedIds]);
-        APP.map.setFilter('zones-france-selected-line', ['in', 'id', ...selectedIds]);
-        
-        // IMPORTANT : Masquer les zones sélectionnées des couches inférieures
-        // pour éviter la superposition
         APP.map.setFilter('zones-france-fill', ['!', ['in', ['get', 'id'], ['literal', selectedIds]]]);
         APP.map.setFilter('zones-france-line', ['!', ['in', ['get', 'id'], ['literal', selectedIds]]]);
     }
@@ -1037,8 +1057,11 @@ function setupZoneEvents(layerId, changeCursor = true) {
     APP.map.off('mouseleave', layerId);
     APP.map.off('mousemove', layerId);
     
-    // Ajouter l'événement de clic
-    APP.map.on('click', layerId, handleZoneClick);
+    // Ajouter l'événement de clic uniquement pour les couches non "-line"
+    const isLineLayer = typeof layerId === 'string' && layerId.endsWith('-line');
+    if (!isLineLayer) {
+        APP.map.on('click', layerId, handleZoneClick);
+    }
     
     // Ajouter les événements de curseur si demandé
     if (changeCursor) {
