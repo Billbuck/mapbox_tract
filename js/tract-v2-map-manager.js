@@ -166,7 +166,8 @@ function setupMapEvents() {
     
     // Debug des sources et layers au chargement
     APP.map.on('styledata', () => {
-
+        // Remonter certaines couches de référence (labels villes, limites admin)
+        bringReferenceLayersToFront();
     });
     
     // Mettre à jour l'indicateur de zoom
@@ -724,6 +725,9 @@ function createUSLLayers() {
     setupZoneEvents('zones-usl-fill');
     setupZoneEvents('zones-usl-line');
     setupZoneEvents('zones-usl-selected');  // Pour pouvoir désélectionner
+
+    // S'assurer que les labels/arrondissements restent visibles par-dessus
+    bringReferenceLayersToFront();
 }
 
 /**
@@ -814,6 +818,9 @@ function createFranceLayers() {
     setupZoneEvents('zones-france-fill');
     setupZoneEvents('zones-france-line');
     setupZoneEvents('zones-france-selected');  // Pour pouvoir désélectionner
+
+    // S'assurer que les labels/arrondissements restent visibles par-dessus
+    bringReferenceLayersToFront();
 }
 
 // === GESTION DES LABELS AU SURVOL ===
@@ -1474,3 +1481,40 @@ window.debugSuperiorZones = debugSuperiorZones;
 // Note: toggleLabelsVisibility est déjà définie plus haut (ligne 773) avec la gestion correcte de labelsEnabled
 
 console.log('✅ Module MAP-MANAGER Tract V2 chargé');
+
+/**
+ * Remonte au premier plan les labels de villes et limites d'arrondissements
+ * sans impacter le reste des couches
+ */
+function bringReferenceLayersToFront() {
+    try {
+        if (!APP.map || !APP.map.getStyle) return;
+        const style = APP.map.getStyle();
+        const layers = (style && Array.isArray(style.layers)) ? style.layers : [];
+        const idsToTop = [];
+        layers.forEach(layer => {
+            const id = layer && layer.id ? layer.id : '';
+            const srcLayer = layer && layer['source-layer'] ? layer['source-layer'] : '';
+            const type = layer && layer.type ? layer.type : '';
+            const isCityLabel = type === 'symbol' && (
+                /place-label|locality|settlement|neighborhood|place-city|place-town|place-village/i.test(id) ||
+                /place_label|locality|settlement|neighborhood/i.test(srcLayer)
+            );
+            const isAdminBoundary = type === 'line' && (
+                /admin-?3-?4-?boundaries|admin-?2-?boundaries|admin-?boundaries/i.test(id) ||
+                /admin/i.test(srcLayer)
+            );
+            if (isCityLabel || isAdminBoundary) {
+                idsToTop.push(id);
+            }
+        });
+        // Dé-duplication et déplacement au-dessus de tous les layers personnalisés
+        Array.from(new Set(idsToTop)).forEach(id => {
+            if (APP.map.getLayer(id)) {
+                try { APP.map.moveLayer(id); } catch(_) {}
+            }
+        });
+    } catch (e) {
+        console.warn('[LAYERS] Impossible de remonter les couches de référence:', e);
+    }
+}
