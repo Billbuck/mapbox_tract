@@ -444,8 +444,15 @@ function recenterOnSelection(padding = 60) {
             if (APP.map && typeof APP.map.once === 'function') {
                 APP.map.once('moveend', () => {
                     try {
+                        // Réactiver le chargement après l'animation
+                        GLOBAL_STATE.suppressMoveLoad = false;
+                        // Rafraîchir immédiatement l'affichage
                         updateMapWithAllCachedZones();
                         updateSelectedZonesDisplay();
+                        // Forcer le chargement des USL dans la viewport après recentrage
+                        if (typeof isInUSLMode === 'function' && isInUSLMode() && typeof loadZonesForCurrentView === 'function') {
+                            loadZonesForCurrentView(true);
+                        }
                     } catch (_) {}
                 });
             }

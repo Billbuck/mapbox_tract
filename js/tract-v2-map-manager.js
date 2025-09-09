@@ -703,7 +703,7 @@ function createUSLLayers() {
                 15, 0.3     // zoom 15 → opacité 0.3 (plus transparent)
             ],
             'fill-outline-color': CONFIG.COLORS.SELECTED_ZONE,  // Même couleur pour éviter les bordures
-            'fill-antialias': false  // Désactiver l'antialiasing
+            'fill-antialias': true  // Antialiasing activé
         },
         filter: ['in', 'id', '']
     });
@@ -784,7 +784,7 @@ function createFranceLayers() {
             'fill-color': CONFIG.COLORS.SELECTED_ZONE,
             'fill-opacity': 0.6,
             'fill-outline-color': CONFIG.COLORS.SELECTED_ZONE,
-            'fill-antialias': false
+            'fill-antialias': true
         }
     });
     
