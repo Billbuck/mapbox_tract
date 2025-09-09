@@ -5,7 +5,7 @@ Code webdev
 procédure MaPage()
 // TON_TOKEN_MAPBOX : pk.eyJ1IjoibWljaGVsLWF0dGFsaSIsImEiOiJjbWF4eTJnMWQwMzZ3MmpyMDB3b2h0NG1vIn0.EOP-_T7vR2peVDLkrqS1bQ
 
-sTexte est une chaîne    = UTF8VersChaîne(fChargeTexte(fRepWeb() + "/Tract V2/tract-v2.html"))
+sTexte est une chaîne    = UTF8VersChaîne(fChargeTexte(fRepWeb() + "/Tract V2/mediaposte.html"))
 htmlCarte = sTexte.Remplace("RepWeb", RépertoireWeb,MotComplet)
 // Définir l'adresse du point de vente (exemple)
 sAdressePointVente    est une chaîne    <synchronisé navigateur>

@@ -760,7 +760,7 @@ function handleLabelsSwitchChange(event) {
     }
     
     // Sauvegarder la préférence
-    localStorage.setItem('tract-v2-show-labels', showLabels);
+    localStorage.setItem('mediaposte-show-labels', showLabels);
 }
 
 /**

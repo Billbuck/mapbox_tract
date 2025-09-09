@@ -134,7 +134,7 @@ function setupUIEvents() {
     const labelsSwitch = document.getElementById('labels-switch');
     if (labelsSwitch) {
         // Par défaut OFF, sauf si explicitement sauvegardé comme ON
-        const savedState = localStorage.getItem('tract-v2-show-labels') === 'true';
+        const savedState = localStorage.getItem('mediaposte-show-labels') === 'true';
         labelsSwitch.checked = savedState || false; // false par défaut
         if (window.toggleLabelsVisibility) {
             window.toggleLabelsVisibility(savedState || false);
@@ -487,7 +487,7 @@ async function loadStudy(studyData) {
         showStatus(message, restoredCount === studyData.selection.tabUsl.length ? 'success' : 'warning');
         
         // 12. Restaurer la préférence des libellés
-        const showLabels = localStorage.getItem('tract-v2-show-labels') === 'true';
+        const showLabels = localStorage.getItem('mediaposte-show-labels') === 'true';
         const labelsSwitch = document.getElementById('labels-switch');
         if (labelsSwitch) {
             labelsSwitch.checked = showLabels;

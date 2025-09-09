@@ -1,6 +1,6 @@
 // ===== FONCTIONS DE SAUVEGARDE ET CHARGEMENT D'ÉTUDES =====
 
-// NOTE: La fonction getStudyDataForSave() a été déplacée dans tract-v2-main.js
+// NOTE: La fonction getStudyDataForSave() a été déplacée dans mediaposte-main.js
 // pour éviter les doublons et centraliser la logique de sauvegarde
 
 /**
@@ -128,7 +128,7 @@ async function loadStudy(studyData) {
 }
 
 // Exposer les fonctions globalement
-// window.getStudyDataForSave = getStudyDataForSave; // Déplacé dans tract-v2-main.js
+// window.getStudyDataForSave = getStudyDataForSave; // Déplacé dans mediaposte-main.js
 window.loadStudy = loadStudy;
 
 console.log('✅ Fonctions de sauvegarde/chargement ajoutées');
