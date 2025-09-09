@@ -179,61 +179,103 @@ const APP = {
 };
 
 const DRAW_STYLES = [
+    // INACTIVE POLYGON FILL
     {
-        'id': 'gl-draw-line',
-        'type': 'line',
-        'filter': ['all', ['==', '$type', 'LineString'], ['!=', 'mode', 'static']],
-        'layout': {
-            'line-cap': 'round',
-            'line-join': 'round'
-        },
-        'paint': {
-            'line-color': '#D20C0C',
-            'line-width': 3
-        }
-    },
-    {
-        'id': 'gl-draw-polygon-fill',
-        'type': 'fill',
-        'filter': ['all', ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
-        'paint': {
-            'fill-color': '#D20C0C',
-            'fill-outline-color': '#D20C0C',
+        id: 'gl-draw-polygon-fill-inactive',
+        type: 'fill',
+        filter: ['all', ['==', '$type', 'Polygon'], ['!=', 'active', 'true']],
+        paint: {
+            'fill-color': '#3bb2d0',
+            'fill-outline-color': '#3bb2d0',
             'fill-opacity': 0.1
         }
     },
+    // INACTIVE POLYGON OUTLINE
     {
-        'id': 'gl-draw-polygon-stroke-active',
-        'type': 'line',
-        'filter': ['all', ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
-        'layout': {
-            'line-cap': 'round',
-            'line-join': 'round'
-        },
-        'paint': {
-            'line-color': '#D20C0C',
-            'line-width': 3
+        id: 'gl-draw-polygon-stroke-inactive',
+        type: 'line',
+        filter: ['all', ['==', '$type', 'Polygon'], ['!=', 'active', 'true']],
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#3bb2d0', 'line-width': 2 }
+    },
+    // INACTIVE LINE
+    {
+        id: 'gl-draw-line-inactive',
+        type: 'line',
+        filter: ['all', ['==', '$type', 'LineString'], ['!=', 'active', 'true']],
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#3bb2d0', 'line-width': 2 }
+    },
+    // INACTIVE POINT (USED BY STATIC/POINT MODES)
+    {
+        id: 'gl-draw-point-inactive',
+        type: 'circle',
+        filter: ['all', ['==', '$type', 'Point'], ['!=', 'meta', 'midpoint'], ['!=', 'active', 'true']],
+        paint: { 'circle-radius': 5, 'circle-color': '#3bb2d0' }
+    },
+
+    // ACTIVE POLYGON FILL
+    {
+        id: 'gl-draw-polygon-fill-active',
+        type: 'fill',
+        filter: ['all', ['==', '$type', 'Polygon'], ['==', 'active', 'true']],
+        paint: {
+            'fill-color': '#fbb03b',
+            'fill-outline-color': '#fbb03b',
+            'fill-opacity': 0.1
         }
     },
+    // ACTIVE POLYGON OUTLINE
     {
-        'id': 'gl-draw-polygon-midpoint',
-        'type': 'circle',
-        'filter': ['all', ['==', 'meta', 'midpoint'], ['!=', 'mode', 'static']],
-        'paint': {
+        id: 'gl-draw-polygon-stroke-active',
+        type: 'line',
+        filter: ['all', ['==', '$type', 'Polygon'], ['==', 'active', 'true']],
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#fbb03b', 'line-width': 2 }
+    },
+    // ACTIVE LINE
+    {
+        id: 'gl-draw-line-active',
+        type: 'line',
+        filter: ['all', ['==', '$type', 'LineString'], ['==', 'active', 'true']],
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+            'line-color': '#fbb03b',
+            // Eviter l'erreur d'expression en v2: si besoin de dasharray, utiliser literal
+            // 'line-dasharray': ['literal', [0.2, 2]],
+            'line-width': 2
+        }
+    },
+    // MIDPOINTS
+    {
+        id: 'gl-draw-midpoint',
+        type: 'circle',
+        filter: ['all', ['==', 'meta', 'midpoint'], ['==', '$type', 'Point']],
+        paint: {
             'circle-radius': 5,
-            'circle-color': '#FFFFFF',
-            'circle-stroke-color': '#C366F2',
-            'circle-stroke-width': 2
+            'circle-color': '#fbb03b'
         }
     },
+    // ACTIVE VERTEX HALO
     {
-        'id': 'gl-draw-polygon-and-line-vertex-active',
-        'type': 'circle',
-        'filter': ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['!=', 'mode', 'static']],
-        'paint': {
-            'circle-radius': 6,
-            'circle-color': '#FFF'
-        }
+        id: 'gl-draw-polygon-and-line-vertex-halo-active',
+        type: 'circle',
+        filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['==', 'active', 'true']],
+        paint: { 'circle-radius': 8, 'circle-color': '#fff' }
+    },
+    // ACTIVE VERTEX
+    {
+        id: 'gl-draw-polygon-and-line-vertex-active',
+        type: 'circle',
+        filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['==', 'active', 'true']],
+        paint: { 'circle-radius': 5, 'circle-color': '#fbb03b' }
+    },
+    // ACTIVE POINT (for point mode)
+    {
+        id: 'gl-draw-point-active',
+        type: 'circle',
+        filter: ['all', ['==', '$type', 'Point'], ['!=', 'meta', 'midpoint'], ['==', 'active', 'true']],
+        paint: { 'circle-radius': 7, 'circle-color': '#fbb03b' }
     }
 ];
 

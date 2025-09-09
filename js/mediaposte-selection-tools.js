@@ -51,14 +51,33 @@ function performToolSwitch(tool) {
     // Gérer le mode Draw pour polygone
     if (tool === 'polygon') {
         // S'assurer que Draw est initialisé/ajouté
-        if (!APP || !APP.draw) {
-            if (typeof initializeDrawTool === 'function') {
-                try { initializeDrawTool(); } catch(_) {}
-            }
+        if (typeof initializeDrawTool === 'function') {
+            try { initializeDrawTool(); } catch(_) {}
         }
-        // Tenter immédiatement puis après un court délai
-        try { if (APP && APP.draw) APP.draw.changeMode('draw_polygon'); } catch(_) {}
-        setTimeout(() => { try { if (APP && APP.draw) APP.draw.changeMode('draw_polygon'); } catch(_) {} }, 150);
+        // Activer le mode dès que le contrôle est monté
+        setTimeout(() => {
+            const isMounted = (APP?.map?._controls||[]).includes(APP?.draw);
+            if (APP && APP.draw && isMounted) {
+                try {
+                    APP.draw.changeMode('draw_polygon');
+                    // TODO: Retirer après période de rodage (date: fin janvier 2025)
+                    console.info('[DRAW] Mode polygone activé');
+                } catch(_) {}
+            } else {
+                // TODO: Retirer après période de rodage (date: fin janvier 2025)
+                console.warn('[DRAW] Contrôle non monté, retry...');
+                setTimeout(() => {
+                    const mounted = (APP?.map?._controls||[]).includes(APP?.draw);
+                    if (APP && APP.draw && mounted) {
+                        try {
+                            APP.draw.changeMode('draw_polygon');
+                            // TODO: Retirer après période de rodage (date: fin janvier 2025)
+                            console.info('[DRAW] Mode polygone activé');
+                        } catch(_) {}
+                    }
+                }, 300);
+            }
+        }, 100);
         showStatus('Cliquez sur la carte pour dessiner un polygone', 'warning');
     } else if (APP && APP.draw) {
         try { APP.draw.changeMode('simple_select'); } catch(_) {}
@@ -124,7 +143,7 @@ function performToolSwitch(tool) {
         })();
     }
     
-    console.log(`Outil activé: ${tool}`);
+    
 }
 
 // ===== OUTIL CERCLE =====
@@ -326,7 +345,6 @@ async function updateIsochronePreview() {
     }
     const startedAt = isoTs();
     const requestId = ++currentIsochroneRequestId;
-    console.log(`[ISOCHRONE ${startedAt}] Début updateIsochronePreview req#${requestId}`);
 
     // Annuler une requête précédente si encore en vol
     if (currentIsochroneAbortController) {
@@ -342,14 +360,11 @@ async function updateIsochronePreview() {
                        params.transport === 'cycling' ? 'cycling' : 'walking';
         
         const url = `https://api.mapbox.com/isochrone/v1/mapbox/${profile}/${GLOBAL_STATE.storeLocation[0]},${GLOBAL_STATE.storeLocation[1]}?contours_minutes=${params.time}&polygons=true&access_token=${CONFIG.MAPBOX_TOKEN}`;
-        console.log(`[ISOCHRONE ${isoTs()}] req#${requestId} FETCH ${url}`);
         const response = await fetch(url, { signal: currentIsochroneAbortController.signal });
         const data = await response.json();
-        console.log(`[ISOCHRONE ${isoTs()}] req#${requestId} Réponse reçue (status: ${response.status})`);
 
         // Si une nouvelle requête a été lancée depuis, ignorer cette réponse
         if (requestId !== currentIsochroneRequestId) {
-            console.log(`[ISOCHRONE ${isoTs()}] req#${requestId} Ignorée (supplantée par req#${currentIsochroneRequestId})`);
             return;
         }
         
@@ -366,9 +381,8 @@ async function updateIsochronePreview() {
                     if (camera && camera.center) {
                         const rawZoom = typeof camera.zoom === 'number' ? camera.zoom : APP.map.getZoom();
                         const steppedZoom = Math.round(rawZoom / 0.25) * 0.25;
-                        console.log(`[ISOCHRONE ${isoTs()}] req#${requestId} Recentre + zoom ${steppedZoom}`);
                         if (APP.map && typeof APP.map.isMoving === 'function' && APP.map.isMoving()) {
-                            try { APP.map.stop(); console.log(`[ISOCHRONE ${isoTs()}] req#${requestId} Stop animation précédente avant recentrage`); } catch(_) {}
+                            try { APP.map.stop(); } catch(_) {}
                         }
                         // Supprimer l'auto-chargement déclenché par moveend pour ce recentrage
                         if (window.GLOBAL_STATE) { GLOBAL_STATE.suppressMoveLoad = true; }
@@ -391,10 +405,7 @@ async function updateIsochronePreview() {
         }
         
     } catch (error) {
-        if (error && error.name === 'AbortError') {
-            console.log(`[ISOCHRONE ${isoTs()}] req#${requestId} Abandonnée (Abort)`);
-            return;
-        }
+        if (error && error.name === 'AbortError') { return; }
         showStatus('Erreur lors du calcul de l\'isochrone', 'error');
         console.error('[ISOCHRONE ERROR]', error);
     } finally {
@@ -422,14 +433,8 @@ function scheduleIsochroneUpdate() {
     const value = Math.max(1, Math.min(60, parseInt(timeInput.value) || 10));
     timeInput.value = value;
     document.getElementById('time-display').textContent = value + ' minutes';
-    if (isochroneUpdateTimeout) {
-        clearTimeout(isochroneUpdateTimeout);
-        console.log(`[ISOCHRONE ${isoTs()}] Debounce reset, prochaine exécution dans 350ms (val=${value})`);
-    } else {
-        console.log(`[ISOCHRONE ${isoTs()}] Debounce planifié dans 350ms (val=${value})`);
-    }
+    if (isochroneUpdateTimeout) { clearTimeout(isochroneUpdateTimeout); }
     isochroneUpdateTimeout = setTimeout(() => {
-        console.log(`[ISOCHRONE ${isoTs()}] Debounce déclenché -> calcul`);
         updateIsochronePreview();
         isochroneUpdateTimeout = null;
     }, 350);
@@ -439,7 +444,6 @@ function incrementIsochroneTime() {
     const t=document.getElementById('time-range'); 
     const before = parseInt(t.value)||10; 
     const after = Math.min(60,before+1);
-    console.log(`[ISOCHRONE ${isoTs()}] Clic + (avant=${before} -> après=${after})`);
     t.value = after; 
     scheduleIsochroneUpdate(); 
 }
@@ -447,7 +451,6 @@ function decrementIsochroneTime() {
     const t=document.getElementById('time-range'); 
     const before = parseInt(t.value)||10; 
     const after = Math.max(1,before-1);
-    console.log(`[ISOCHRONE ${isoTs()}] Clic - (avant=${before} -> après=${after})`);
     t.value = after; 
     scheduleIsochroneUpdate(); 
 }
@@ -575,10 +578,8 @@ function debouncedPrecount(geometry, delay = CONFIG.TIMEOUTS.PRECOUNT_DELAY) {
         
         if (isInUSLMode()) {
             showEstimation(result.totalFoyers);
-            console.log(`Précomptage USL: ${result.totalFoyers} foyers dans ${result.zonesCount} zones`);
         } else {
             showEstimation(result.zonesCount);
-            console.log(`Précomptage ${getCurrentZoneConfig().label}: ${result.zonesCount} zones`);
         }
     }, delay);
 }
@@ -608,11 +609,14 @@ function updatePrecountAfterZoneLoad() {
 function setupDrawEvents() {
     if (APP.map && APP.draw) {
         // Événements Draw pour les polygones
+        try { APP.map.off('draw.create', handlePolygonCreate); } catch(_) {}
+        try { APP.map.off('draw.update', handlePolygonUpdate); } catch(_) {}
+        try { APP.map.off('draw.delete', handlePolygonDelete); } catch(_) {}
+
         APP.map.on('draw.create', handlePolygonCreate);
         APP.map.on('draw.update', handlePolygonUpdate);
         APP.map.on('draw.delete', handlePolygonDelete);
         
-        console.log('✓ Événements Draw configurés');
     }
 }
 
@@ -690,5 +694,3 @@ window.clearPolygon = clearPolygon;
 window.updatePrecountAfterZoneLoad = updatePrecountAfterZoneLoad;
 window.setupKeyboardShortcuts = setupKeyboardShortcuts;
 window.setupDrawEvents = setupDrawEvents;
-
-console.log('✅ Module SELECTION-TOOLS Médiaposte chargé');

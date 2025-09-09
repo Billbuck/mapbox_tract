@@ -35,36 +35,10 @@ function initMap() {
     }
     
     APP.map.on('load', () => {
-        console.log('[MAP] Carte chargée');
         showStatus('Carte chargée - Saisissez une adresse pour commencer', 'success');
         setupMapEvents();
-        
-        
-        // Logger le zoom et l'épaisseur des traits
-        const logZoomAndThickness = () => {
-            const zoom = APP.map.getZoom();
-            // Calcul de l'épaisseur avec interpolation linéaire entre zoom 9 (0.2px) et zoom 15 (1.5px)
-            const thickness = Math.min(1.5, Math.max(0.2, 0.2 + (zoom - 9) * (1.5 - 0.2) / (15 - 9)));
-        };
-        
-        // Logger au chargement
-        logZoomAndThickness();
-        
-        // Logger à chaque changement de zoom
-        APP.map.on('zoom', logZoomAndThickness);
-        // Debug : lister toutes les couches disponibles
-        try {
-            const style = APP.map.getStyle && APP.map.getStyle();
-            const layers = style && Array.isArray(style.layers) ? style.layers : [];
-
-        } catch (e) {
-            console.warn('[MAP] Impossible de lister les couches:', e);
-        }
-        
-        // Initialiser Draw après un délai pour stabilité
-        setTimeout(() => {
-            initializeDrawTool();
-        }, 3000);
+        // Initialiser Draw immédiatement après le chargement du style
+        initializeDrawTool();
     });
 
     // Gestion du zoom molette par pas de 0.25 avec contraintes min/max selon le mode
@@ -116,39 +90,40 @@ function initializeDrawTool() {
     }
     
     try {
-        // Vérifier si Draw n'est pas déjà initialisé
-        if (APP.draw) {
-
-            return;
+        // 1) Créer l'instance si absente
+        if (!APP.draw) {
+            APP.draw = new MapboxDraw({
+                displayControlsDefault: false,
+                controls: { polygon: false, trash: false },
+                defaultMode: 'simple_select',
+                boxSelect: false,
+                styles: (Array.isArray(window.DRAW_STYLES) && window.DRAW_STYLES.length > 0) ? window.DRAW_STYLES : undefined
+            });
         }
-        
-        APP.draw = new MapboxDraw({
-            displayControlsDefault: false,
-            controls: {
-                polygon: false,
-                trash: false
-            },
-            defaultMode: 'simple_select',
-            boxSelect: false,
-            styles: DRAW_STYLES
-        });
-        
-        // Attendre encore un peu avant d'ajouter à la carte
-        setTimeout(() => {
-            if (APP.map && APP.map.isStyleLoaded()) {
-                APP.map.addControl(APP.draw);
 
-                
-                // Nettoyer toutes les géométries existantes après un délai
-                setTimeout(() => {
-                    if (APP.draw) {
-                        APP.draw.deleteAll();
-
-                    }
-                }, 1000);
+        // 2) Ajouter le contrôle si non monté, ou récupérer un Draw déjà monté
+        const controls = (APP.map && APP.map._controls) ? APP.map._controls : [];
+        let isMounted = controls.includes(APP.draw);
+        // Si un autre contrôle Draw est déjà monté, le récupérer
+        if (!isMounted) {
+            const existingDraw = controls.find(c => c && typeof c.changeMode === 'function' && typeof c.getMode === 'function' && c.modes);
+            if (existingDraw) {
+                APP.draw = existingDraw;
+                isMounted = true;
             }
-        }, 1000);
-        
+        }
+        if (!isMounted && APP.map && APP.map.isStyleLoaded()) {
+            APP.map.addControl(APP.draw);
+        }
+
+        // 3) Attacher les événements Draw une seule fois
+        if (!GLOBAL_STATE.__drawEventsAttached && typeof window.setupDrawEvents === 'function') {
+            try { window.setupDrawEvents(); GLOBAL_STATE.__drawEventsAttached = true; } catch(_) {}
+        }
+
+        // 4) Nettoyer toute géométrie résiduelle si le contexte est prêt
+        try { if (APP.draw && APP.draw._ctx) APP.draw.deleteAll(); } catch(_) {}
+
     } catch (error) {
         console.error('[DRAW ERROR] Erreur initialisation Draw:', error);
         APP.draw = null;
@@ -201,7 +176,6 @@ function setupMapEvents() {
         
         // NOUVEAU : Si un changement de type est en cours, ne pas charger
         if (window.GLOBAL_STATE && GLOBAL_STATE.isChangingZoneType === true) {
-            console.log('[MAP] Chargement ignoré - changement de type en cours');
             // Mettre à jour quand même la visibilité des boutons
             if (typeof updateActionButtonsVisibility === 'function') {
                 updateActionButtonsVisibility();
@@ -431,7 +405,6 @@ function updateMapWithAllCachedZones() {
  */
 function updateUSLDisplay() {
     const zones = Array.from(GLOBAL_STATE.uslCache.values());
-    console.log(`[USL] updateUSLDisplay: ${zones.length} zones à traiter`);
     
     let validCount = 0;
     let invalidCount = 0;
@@ -460,8 +433,7 @@ function updateUSLDisplay() {
         }).filter(f => f !== null) // Supprimer les features invalides
     };
     
-    console.log(`[USL] Features USL: ${validCount} valides, ${invalidCount} invalides`);
-    console.log(`[USL] GeoJSON final:`, geojsonData.features.length, 'features');
+    
     
     const t1 = performance.now();
 
@@ -507,7 +479,6 @@ function updateUSLDisplay() {
  */
 function updateUSLDisplayForDebug() {
     const zones = Array.from(GLOBAL_STATE.uslCache.values());
-    console.log(`[DEBUG USL] ${zones.length} zones USL en cache (mode Non-USL - invisibles)`);
     
     if (zones.length === 0) return;
     
@@ -555,7 +526,7 @@ function updateFranceZonesDisplay() {
     const allMainZones = Array.from(GLOBAL_STATE.currentZonesCache.values());
     const mainZones = filterZonesInViewport(allMainZones);
     
-    console.log(`[FRANCE] Affichage de ${mainZones.length}/${allMainZones.length} zones visibles`);
+    
     
     const mainGeoJSON = {
         type: 'FeatureCollection',
@@ -580,7 +551,6 @@ function updateFranceZonesDisplay() {
     
     // Zones supérieures (contexte)
     const superiorZones = Array.from(GLOBAL_STATE.superiorZonesCache.values());
-    console.log(`[FRANCE] ${superiorZones.length} zones supérieures dans le cache`);
     const superiorGeoJSON = {
         type: 'FeatureCollection',
         features: superiorZones.map(zone => {
@@ -603,7 +573,7 @@ function updateFranceZonesDisplay() {
     updateSource('zones-france', mainGeoJSON);
     updateSource('zones-france-superior', superiorGeoJSON);
     
-    console.log(`[FRANCE] Sources mises à jour - Principal: ${mainGeoJSON.features.length} features, Supérieur: ${superiorGeoJSON.features.length} features`);
+    
     
     if (!APP.map.getLayer('zones-france-fill')) {
         createFranceLayers();
@@ -1389,7 +1359,6 @@ function incrementZoom(step) {
  * Masquer tous les layers non-USL
  */
 function hideNonUSLLayers() {
-    console.log('[LAYERS] Masquage des layers non-USL');
     
     // Masquer les layers France
     const franceLayers = [
@@ -1419,7 +1388,7 @@ function hideNonUSLLayers() {
         APP.map.setLayoutProperty('zones-usl-line', 'visibility', 'visible');
     }
     
-    console.log('[LAYERS] Layers non-USL masqués, layers USL visibles');
+    
 }
 
 /**
@@ -1478,8 +1447,6 @@ window.hideNonUSLLayers = hideNonUSLLayers;
 window.debugSuperiorZones = debugSuperiorZones;
 
 // Note: toggleLabelsVisibility est déjà définie plus haut (ligne 773) avec la gestion correcte de labelsEnabled
-
-console.log('✅ Module MAP-MANAGER Médiaposte chargé');
 
 /**
  * Remonte au premier plan les labels de villes et limites d'arrondissements
