@@ -446,7 +446,7 @@ body {
     transition: opacity 0.2s;
 }
 
-.tool-btn:hover::after { }
+.tool-btn:hover::after { opacity: 1; }
 
 .action-btn-float::after {
     content: attr(data-tooltip);
@@ -465,7 +465,16 @@ body {
     transition: opacity 0.2s;
 }
 
-.action-btn-float:hover::after { }
+.action-btn-float:hover::after { opacity: 1; }
+
+/* Tooltips côté droit: retourner l'ancrage vers la gauche du bouton */
+#recenter-buttons .action-btn-float::after {
+    left: auto;
+    right: 54px;
+    max-width: none;
+    white-space: nowrap;
+    text-align: left;
+}
 
 
 
@@ -1553,7 +1562,7 @@ input[type="file"] {
 
 input[type="file"]:hover {
     border-color: var(--primary-color);
-    background: #f0f8ff;
+    background: var(--color-light-violet);
 }
 
 /* === PREVIEW DE FICHIER === */

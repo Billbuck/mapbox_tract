@@ -485,31 +485,16 @@ function updateActionButtonsVisibility() {
     // 1) Reset: visible uniquement si au moins une USL est sélectionnée
     if (hasUSLSelected) resetBtn.classList.remove('hidden'); else resetBtn.classList.add('hidden');
     
-    // 2) Recentrer sélection: visible si sélection (USL ou temp) ET hors viewport
-    let selectionOutOfView = false;
-    const selectionBounds = (typeof calculateSelectionBounds === 'function') ? calculateSelectionBounds() : null;
-    if (selectionBounds && (hasUSLSelected || hasTempSelected)) {
-        const mapBounds = APP.map.getBounds();
-        // Si une partie de la sélection est hors du viewport
-        if (selectionBounds.lat_min < mapBounds.getSouth() ||
-            selectionBounds.lat_max > mapBounds.getNorth() ||
-            selectionBounds.lng_min < mapBounds.getWest()  ||
-            selectionBounds.lng_max > mapBounds.getEast()) {
-            selectionOutOfView = true;
-        }
-    }
-    if (selectionOutOfView) recenterSelectionBtn.classList.remove('hidden'); else recenterSelectionBtn.classList.add('hidden');
+    // 2) Recentrer sélection: visible si une sélection existe (USL ou temp), quel que soit le viewport
+    if (hasUSLSelected || hasTempSelected) recenterSelectionBtn.classList.remove('hidden'); else recenterSelectionBtn.classList.add('hidden');
     
-    // 3) Recentrer point de vente: visible si store existe et hors viewport
+    // 3) Recentrer point de vente: visible uniquement si un magasin est défini ET complètement hors viewport
     let storeOutOfView = false;
     if (GLOBAL_STATE.storeLocation && Array.isArray(GLOBAL_STATE.storeLocation)) {
-        const center = APP.map.getCenter();
         const mapBounds = APP.map.getBounds();
         const [lng, lat] = GLOBAL_STATE.storeLocation;
-        // point hors viewport si en dehors des bounds
-        if (lat < mapBounds.getSouth() || lat > mapBounds.getNorth() || lng < mapBounds.getWest() || lng > mapBounds.getEast()) {
-            storeOutOfView = true;
-        }
+        // le point est hors écran s'il est en dehors des bounds courants
+        storeOutOfView = lat < mapBounds.getSouth() || lat > mapBounds.getNorth() || lng < mapBounds.getWest() || lng > mapBounds.getEast();
     }
     if (storeOutOfView) recenterStoreBtn.classList.remove('hidden'); else recenterStoreBtn.classList.add('hidden');
 }
