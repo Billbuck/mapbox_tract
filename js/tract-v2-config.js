@@ -1,4 +1,4 @@
-// Configuration Tract V2
+// Configuration Médiaposte
 const CONFIG = {
     MAPBOX_TOKEN: 'pk.eyJ1IjoibWljaGVsLWF0dGFsaSIsImEiOiJjbWF4eTJnMWQwMzZ3MmpyMDB3b2h0NG1vIn0.EOP-_T7vR2peVDLkrqS1bQ',
     

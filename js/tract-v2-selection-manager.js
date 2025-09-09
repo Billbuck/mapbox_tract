@@ -1,4 +1,4 @@
-// ===== GESTION SÉLECTION TRACT V2 =====
+// ===== GESTION SÉLECTION MÉDIAPOSTE =====
 
 // ===== SÉLECTION PAR CLIC =====
 
@@ -403,4 +403,4 @@ window.clearCurrentSelection = clearCurrentSelection;
 window.isBoundsAlreadyLoaded = isBoundsAlreadyLoaded;
 window.clearCache = clearCache;
 
-console.log('✅ Module SELECTION-MANAGER Tract V2 chargé');
+console.log('✅ Module SELECTION-MANAGER Médiaposte chargé');

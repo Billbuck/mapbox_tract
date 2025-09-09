@@ -1,4 +1,4 @@
-// ===== MOTEUR DE CONVERSION TRACT V2 =====
+// ===== MOTEUR DE CONVERSION MÉDIAPOSTE =====
 
 // Flag global pour éviter le rechargement après conversion
 window.isConversionInProgress = false;
@@ -316,4 +316,4 @@ function clearConversionState() {
 window.convertTempSelectionToUSL = convertTempSelectionToUSL;
 window.clearConversionState = clearConversionState;
 
-console.log('✅ Module CONVERSION-ENGINE Tract V2 chargé');
+console.log('✅ Module CONVERSION-ENGINE Médiaposte chargé');

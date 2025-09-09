@@ -1,4 +1,4 @@
-// ===== OUTILS SÉLECTION TRACT V2 =====
+// ===== OUTILS SÉLECTION MÉDIAPOSTE =====
 
 // ===== GESTION DES OUTILS =====
 // Utilitaires logs horodatés et contrôle de concurrence pour isochrone
@@ -691,4 +691,4 @@ window.updatePrecountAfterZoneLoad = updatePrecountAfterZoneLoad;
 window.setupKeyboardShortcuts = setupKeyboardShortcuts;
 window.setupDrawEvents = setupDrawEvents;
 
-console.log('✅ Module SELECTION-TOOLS Tract V2 chargé');
+console.log('✅ Module SELECTION-TOOLS Médiaposte chargé');

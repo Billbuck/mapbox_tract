@@ -1,4 +1,4 @@
-// ===== GESTIONNAIRE D'ADRESSE TRACT V2 =====
+// ===== GESTIONNAIRE D'ADRESSE MÉDIAPOSTE =====
 
 // Variable pour stocker le geocoder
 let popupGeocoder = null;

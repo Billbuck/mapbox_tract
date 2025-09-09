@@ -1,4 +1,4 @@
-// ===== GESTION CARTE TRACT V2 =====
+// ===== GESTION CARTE MÉDIAPOSTE =====
 
 // ===== INITIALISATION CARTE =====
 
@@ -45,7 +45,6 @@ function initMap() {
             const zoom = APP.map.getZoom();
             // Calcul de l'épaisseur avec interpolation linéaire entre zoom 9 (0.2px) et zoom 15 (1.5px)
             const thickness = Math.min(1.5, Math.max(0.2, 0.2 + (zoom - 9) * (1.5 - 0.2) / (15 - 9)));
-            console.log(`[ZOOM] Niveau: ${zoom.toFixed(2)} | Épaisseur contour: ${thickness.toFixed(2)}px`);
         };
         
         // Logger au chargement
@@ -88,7 +87,7 @@ function initMap() {
                 APP.map.setZoom(newZoom);
             }
         } catch (err) {
-            console.warn('[ZOOM] Erreur gestion molette:', err);
+            // Erreur silencieuse sur gestion molette
         }
     }, { passive: false });
     
@@ -1480,7 +1479,7 @@ window.debugSuperiorZones = debugSuperiorZones;
 
 // Note: toggleLabelsVisibility est déjà définie plus haut (ligne 773) avec la gestion correcte de labelsEnabled
 
-console.log('✅ Module MAP-MANAGER Tract V2 chargé');
+console.log('✅ Module MAP-MANAGER Médiaposte chargé');
 
 /**
  * Remonte au premier plan les labels de villes et limites d'arrondissements

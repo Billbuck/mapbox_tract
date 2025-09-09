@@ -1,4 +1,4 @@
-// ===== CHARGEMENT DES ZONES TRACT V2 =====
+// ===== CHARGEMENT DES ZONES MÉDIAPOSTE =====
 
 // ===== CHARGEMENT PRINCIPAL =====
 
@@ -832,4 +832,4 @@ window.shouldLoadUSLInBackground = shouldLoadUSLInBackground;
 window.loadUSLInBackground = loadUSLInBackground;
 window.loadUSLForSpecificBounds = loadUSLForSpecificBounds;
 
-console.log('✅ Module ZONES-LOADER Tract V2 chargé');
+console.log('✅ Module ZONES-LOADER Médiaposte chargé');

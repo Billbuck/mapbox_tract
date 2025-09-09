@@ -1,4 +1,4 @@
-// ===== MODULE DE RECHERCHE - TRACT V2 (porté de Zecible V2) =====
+// ===== MODULE DE RECHERCHE - MÉDIAPOSTE (porté de Zecible V2) =====
 
 let TV2_searchTimeout = null;
 let TV2_searchResults = [];
@@ -221,6 +221,6 @@ window.validateSearch = async function() {
     }
 };
 
-console.log('✅ Module SEARCH-MANAGER Tract V2 chargé');
+console.log('✅ Module SEARCH-MANAGER Médiaposte chargé');
 
 

@@ -1,4 +1,4 @@
-// ===== GESTION INTERFACE TRACT V2 =====
+// ===== GESTION INTERFACE MÉDIAPOSTE =====
 
 // ===== FONCTION CENTRALISÉE DE VISIBILITÉ UI =====
 
@@ -842,4 +842,4 @@ window.resetSelection = resetSelection;
 window.confirmReset = confirmReset;
 window.openAddressPopup = openAddressPopup;
 
-console.log('✅ Module UI-MANAGER Tract V2 chargé');
+console.log('✅ Module UI-MANAGER Médiaposte chargé');

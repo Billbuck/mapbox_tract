@@ -1,4 +1,4 @@
-// ===== GESTIONNAIRE IMPORT TRACT V2 =====
+// ===== GESTIONNAIRE IMPORT MÉDIAPOSTE =====
 
 // ===== OUVERTURE/FERMETURE POPUP =====
 
@@ -475,4 +475,4 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(initImportEvents, 200);
 });
 
-console.log('✅ Module IMPORT-MANAGER Tract V2 chargé');
+console.log('✅ Module IMPORT-MANAGER Médiaposte chargé');

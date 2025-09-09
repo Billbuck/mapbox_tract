@@ -1,4 +1,4 @@
-// ===== INITIALISATION PRINCIPALE TRACT V2 =====
+// ===== INITIALISATION PRINCIPALE MÉDIAPOSTE =====
 
 // ===== GESTION INITIALISATION =====
 
@@ -15,7 +15,7 @@ function initializeApp() {
         return;
     }
     
-    console.log('=== INITIALISATION TRACT V2 ===');
+    console.log('=== INITIALISATION MÉDIAPOSTE ===');
     
     try {
         // Marquer comme initialisé
@@ -47,7 +47,7 @@ function initializeApp() {
         // 5. Initialiser l'état
         initializeState();
         
-        console.log('✅ Tract V2 initialisé avec succès');
+        console.log('✅ Médiaposte initialisé avec succès');
         
     } catch (error) {
         console.error('❌ Erreur lors de l\'initialisation:', error);
@@ -634,7 +634,7 @@ function setupKeyboardShortcuts() {
  * Événement de chargement du DOM
  */
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[DOM] DOM chargé, initialisation de Tract V2...');
+    console.log('[DOM] DOM chargé, initialisation de Médiaposte...');
     
     // Ne pas initialiser automatiquement si on attend WebDev
     if (window.location.search.includes('webdev') || window.parent !== window) {
@@ -1040,7 +1040,7 @@ window.RecupererCaptureCarte = function() {
                 // C'est la bonne fonction
                 imageBase64 = window.CapturerCarte();
             } else {
-                console.error('[CAPTURE-WEBDEV] window.CapturerCarte semble être la fonction WebDev, pas celle de Tract V2');
+                console.error('[CAPTURE-WEBDEV] window.CapturerCarte semble être la fonction WebDev, pas celle de Médiaposte');
                 // Essayer d'accéder directement à la fonction globale
                 if (APP && APP.map) {
                     // Appeler directement le code de capture
@@ -1073,7 +1073,7 @@ window.RecupererCaptureCarte = function() {
     }
 };
 
-console.log('✅ Module MAIN Tract V2 chargé');
+console.log('✅ Module MAIN Médiaposte chargé');
 console.log('✅ InitialiserCarte exposée globalement:', typeof window.InitialiserCarte);
 /**
  * Fonction simple pour WebDev - Effectue uniquement le recentrage instantané
