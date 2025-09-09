@@ -234,35 +234,36 @@ function handleZoneTypeChange(event) {
     // Skip les confirmations si demandé (après conversion automatique)
     const skipConfirm = event.skipConfirmation === true;
     
-    // Si on quitte le mode USL avec une sélection, demander confirmation
-    if (!skipConfirm && oldType === 'mediaposte' && GLOBAL_STATE.finalUSLSelection.size > 0) {
-        if (!confirm('Changer de type de zone va vider votre sélection USL. Continuer ?')) {
-            event.target.value = oldType;
-            GLOBAL_STATE.isChangingZoneType = false; // Annuler le flag si on annule
-            
-            // Réactiver le listener moveend car on annule
-            if (window.moveEndHandler && APP.map) {
-                APP.map.on('moveend', window.moveEndHandler);
-            }
-            
-            return;
+    // Si une sélection existe, afficher une popup personnalisée au lieu du prompt système
+    const needsUSLConfirm = (!skipConfirm && oldType === 'mediaposte' && GLOBAL_STATE.finalUSLSelection.size > 0);
+    const needsTempConfirm = (!skipConfirm && oldType !== 'mediaposte' && GLOBAL_STATE.tempSelection.size > 0);
+    if (needsUSLConfirm || needsTempConfirm) {
+        // Stocker les infos de changement en attente
+        GLOBAL_STATE.__pendingZoneType = newType;
+        GLOBAL_STATE.__pendingClear = needsUSLConfirm ? 'final' : 'temp';
+        GLOBAL_STATE.__pendingSkipZoom = event && event.skipZoom === true;
+        
+        // Ouvrir la popup custom
+        if (typeof openZoneTypeConfirmPopup === 'function') {
+            openZoneTypeConfirmPopup(needsUSLConfirm);
         }
-        clearFinalSelection();
+        
+        // Revenir visuellement à l'ancien type et annuler l'état temporaire
+        event.target.value = oldType;
+        GLOBAL_STATE.isChangingZoneType = false;
+        if (window.moveEndHandler && APP.map) {
+            APP.map.on('moveend', window.moveEndHandler);
+        }
+        return;
     }
     
-    // Si on quitte un mode non-USL avec une sélection temporaire
-    if (!skipConfirm && oldType !== 'mediaposte' && GLOBAL_STATE.tempSelection.size > 0) {
-        if (!confirm('Changer de type de zone va vider votre sélection temporaire. Continuer ?')) {
-            event.target.value = oldType;
-            GLOBAL_STATE.isChangingZoneType = false; // Annuler le flag si on annule
-            
-            // Réactiver le listener moveend car on annule
-            if (window.moveEndHandler && APP.map) {
-                APP.map.on('moveend', window.moveEndHandler);
-            }
-            
-            return;
-        }
+    // Effacer la sélection si nécessaire (pas de confirmation requise)
+    // USL -> France
+    if (oldType === 'mediaposte' && GLOBAL_STATE.finalUSLSelection.size > 0) {
+        clearFinalSelection();
+    }
+    // France -> autre type avec sélection temp
+    if (oldType !== 'mediaposte' && GLOBAL_STATE.tempSelection.size > 0) {
         clearTempSelection();
     }
     
@@ -370,6 +371,81 @@ function handleZoneTypeChange(event) {
         }, 100);
     }, 600); // 600ms > durée de l'animation (500ms)
 }
+
+// ===== POPUP CONFIRMATION CHANGEMENT DE TYPE =====
+function openZoneTypeConfirmPopup(isUSLSelection) {
+    const popup = document.getElementById('popup-zone-type-confirm');
+    const msg = document.getElementById('zone-type-confirm-message');
+    if (!popup) return;
+    if (msg) {
+        msg.innerText = isUSLSelection
+            ? 'Changer de type de zone va vider votre sélection USL. Continuer ?'
+            : 'Changer de type de zone va vider votre sélection en cours. Continuer ?';
+    }
+    // Positionner comme la popup reset (180px, 100px) et ajuster si besoin
+    popup.style.left = '180px';
+    popup.style.top = '100px';
+    popup.style.transform = 'none';
+    popup.style.right = 'auto';
+    popup.style.display = 'block';
+    popup.classList.add('active');
+    setTimeout(() => {
+        const rect = popup.getBoundingClientRect();
+        const appContainer = document.getElementById('app') || document.getElementById('map-container');
+        if (appContainer) {
+            const containerRect = appContainer.getBoundingClientRect();
+            if (rect.right > containerRect.right) {
+                popup.style.left = 'auto';
+                popup.style.right = '20px';
+            }
+            if (rect.bottom > containerRect.bottom) {
+                popup.style.top = (containerRect.height - rect.height - 20) + 'px';
+            }
+        }
+    }, 10);
+}
+
+function closeZoneTypeConfirmPopup() {
+    const popup = document.getElementById('popup-zone-type-confirm');
+    if (popup) {
+        popup.classList.remove('active');
+        popup.style.display = 'none';
+    }
+}
+
+window.cancelZoneTypeChange = function() {
+    closeZoneTypeConfirmPopup();
+    // Rien d'autre: on a déjà restauré l'ancien type dans le sélecteur
+    GLOBAL_STATE.__pendingZoneType = null;
+    GLOBAL_STATE.__pendingClear = null;
+    GLOBAL_STATE.__pendingSkipZoom = null;
+};
+
+window.confirmZoneTypeChange = function() {
+    const newType = GLOBAL_STATE.__pendingZoneType;
+    const clearTarget = GLOBAL_STATE.__pendingClear;
+    const skipZoomFlag = GLOBAL_STATE.__pendingSkipZoom === true;
+    closeZoneTypeConfirmPopup();
+    if (!newType) return;
+    
+    // Nettoyer la sélection selon le cas
+    if (clearTarget === 'final') {
+        if (typeof clearFinalSelection === 'function') clearFinalSelection();
+    } else if (clearTarget === 'temp') {
+        if (typeof clearTempSelection === 'function') clearTempSelection();
+    }
+    
+    // Déclencher le changement sans re-demander de confirmation
+    const selector = document.getElementById('zone-type');
+    if (selector) {
+        selector.value = newType;
+        handleZoneTypeChange({ target: selector, skipConfirmation: true, skipZoom: skipZoomFlag });
+    }
+    
+    GLOBAL_STATE.__pendingZoneType = null;
+    GLOBAL_STATE.__pendingClear = null;
+    GLOBAL_STATE.__pendingSkipZoom = null;
+};
 
 // ===== AFFICHAGE DES MESSAGES =====
 

@@ -183,6 +183,28 @@
             </div>
         </div>
         
+        <!-- Popup confirmation changement de type de zone -->
+        <div id="popup-zone-type-confirm" class="popup" style="display:none;">
+            <div class="popup-header" onmousedown="startDrag(event, 'popup-zone-type-confirm')">
+                <h3 class="popup-title">
+                    <span class="icon-container icon-20 icon-mode-new"></span>
+                    Changer de type de zone
+                </h3>
+                <button class="popup-close" onclick="closeZoneTypeConfirmPopup(); return false;">
+                    <span class="icon-container icon-16 icon-croix"></span>
+                </button>
+            </div>
+            <div class="popup-content">
+                <div class="import-info" id="zone-type-confirm-message">
+                    Ce changement va vider la sélection en cours. Continuer ?
+                </div>
+            </div>
+            <div class="popup-footer">
+                <button class="popup-btn popup-btn-secondary" onclick="cancelZoneTypeChange(); return false;">Annuler</button>
+                <button class="popup-btn popup-btn-primary" onclick="confirmZoneTypeChange(); return false;">✓ Continuer</button>
+            </div>
+        </div>
+
         <!-- Popup Cercle -->
         <div id="popup-circle" class="popup">
             <div class="popup-header" onmousedown="startDrag(event, 'popup-circle')">
